@@ -14,6 +14,21 @@ function nextprime(k::Integer)
     end
 end
 
+## http://stackoverflow.com/questions/37142821/prime-iterator-in-julia
+function nextprime(y::BigInt)
+    x = BigInt()
+    ccall((:__gmpz_nextprime,:libgmp), Void, (Ptr{BigInt},Ptr{BigInt}), &x, &y)
+    x
+end
+
+## list factors on n (https://rosettacode.org/wiki/Factors_of_an_integer#Julia)
+function factors(n::Integer)
+    f = [one(n)]
+    for (p,e) in factor(n)
+        f = reduce(vcat, f, [f*p^j for j in 1:e])
+    end
+    return length(f) == 1 ? [one(n), n] : sort!(f)
+end
 
 #### Some number theory things ##################################################
 

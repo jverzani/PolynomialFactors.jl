@@ -5,11 +5,12 @@ module PolynomialFactors
 
 ## TODO
 ## tidy code base (Repeted squaring is improved; exact_divrem, not divrem;
-## add in Z/2Z -- easy, just need Tm's
-## README examples
-## restructure files: FiniteFields, Znx, Zx, factor, utils, polyutils
-## implement EEA1, not generic one of wikipedia
-## *maybe* add in real_roots here?
+## * remove p \in Int restriction by either using IntModn.jl or rewriting to use (array,p) representation for Z/nZ[x].
+##   This is actually kinda necessary to be competitive time wise with SymPy
+## * LLL could be implemented
+## * could add real_roots here? But that seems out of place
+
+
 
 using Polynomials
 using Iterators

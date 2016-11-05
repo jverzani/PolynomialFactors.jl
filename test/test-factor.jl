@@ -128,6 +128,13 @@ println("Test factormod")
 ## factormod
 x = variable(BigInt)
 
+p = x^15 - 1
+@test length(factor(p)) == 4
+
+p = 1 + x^3 + x^6 + x^9 + x^12
+@test length(factor(p)) == 2
+
+
 C10 = x^4 - x^3 + x^2 -x + 1
 U = PolynomialFactors.factormod(C10, 5)
 @test U[PolynomialFactors.Znx(5, x+1)] == 4

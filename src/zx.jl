@@ -29,6 +29,29 @@ function Base.powermod{T}(a::Poly{T},p,m::Poly{T})
     r
 end
 
+## a,m are polys as vectors. About 10 times faster than above
+function poly_powermod_over_Zp{T}(a::Vector{T},n,m::Vector{T}, p)
+    ## basically powermod in intfuncs.jl with wider type signatures
+
+    n < 0 && throw(DomainError())
+    n == 0 && return ones(T,1)
+    b = poly_rem_over_Zp(a, m, p)
+    b == T[] && return T[]
+    
+    t = prevpow2(n)
+    local r::Vector{T}
+    r = ones(T,1)
+    while true
+        if n >= t
+            r = poly_rem_over_Zp(r ⊗ b, m, p)
+            n -= t
+        end
+        t >>>= 1
+        t <= 0 && break
+        r = poly_rem_over_Zp(r ⊗ r, m, p)
+    end
+    r
+end
 
 
 
@@ -174,7 +197,7 @@ end
 ## the small prime version usng Int[] and not Poly{ModInt{n,B}}.
 
 ## convenient way to make Vector{Int} go to mod(k,p)
-function MOD(p,center=false)
+function MOD(p,center=true)
     ks -> begin
         ps = similar(ks)
         S = div(p,2)
@@ -211,12 +234,17 @@ function poly_divrem{T<:Integer}(as::Vector{T}, bs::Vector{T})
 end
 
 ## divrem() over Z/pZ
-function poly_divrem_over_Zp{T<:Integer}(as::Vector{T}, bs::Vector{T}, p::T)
+function poly_divrem_over_Zp{T<:Integer}(as::Vector{T}, bs::Vector{T}, p::Integer)
 
-    rs = copy(as)
+    rs = poly_zchop(MOD(p)(as))
+    bs = poly_zchop(MOD(p)(bs))
+
     n,m = length(rs), length(bs)
-    n >= m || return as
+    n >= m || return ones(T,1), as
+    m == 0 && T[], bs
+    
     qs = zeros(T, n-m+1)
+
     bmi = invmod(bs[end], p)
     for i in n:-1:m
         lambda = mod(rs[i] * bmi, p)
@@ -233,22 +261,60 @@ function poly_divrem_over_Zp{T<:Integer}(as::Vector{T}, bs::Vector{T}, p::T)
 end
 
 ## rem() over Z/pZ
-poly_rem_over_Zp{T<:Integer}(as::Vector{T}, bs::Vector{T}, p::T) =  poly_divrem_over_Zp(as,bs,p)[2]
+poly_rem_over_Zp{T<:Integer}(as::Vector{T}, bs::Vector{T}, p::Integer) =  poly_divrem_over_Zp(as,bs,p)[2]
+## div() over Z/pZ
+poly_div_over_Zp{T<:Integer}(as::Vector{T}, bs::Vector{T}, p::Integer) =  poly_divrem_over_Zp(as,bs,p)[1]
 
+## return, g, s,t: g gcd, p*s + q*t = g
+function poly_bezout_over_Zp{R<:Integer, S<:Integer}(ps::Vector{R}, qs::Vector{R}, p::S)
+    T = promote_type(R,S)
+    as = convert(Vector{T}, ps)
+    bs = convert(Vector{T}, qs)
+    m = convert(T, p)
+
+    r0, r1 = as, bs
+    s0, s1 = [one(T)], [zero(T)]
+    t0, t1 = [zero(T)], [one(T)]
+
+    while poly_degree(r1) >= 0
+        q, r = poly_divrem_over_Zp(r0, r1, m)
+        r0, r1 = r1, poly_zchop(MOD(m)(r0 ⊕ -q ⊗ r1))
+        s0, s1 = s1, poly_zchop(MOD(m)(s0 ⊕ -q ⊗ s1))
+        t0, t1 = t1, poly_zchop(MOD(m)(t0 ⊕ -q ⊗ t1))
+    end
+    r0 = poly_zchop(r0)
+    r0 == T[] && return [one(T)], s1, t1
+    rni = invmod(r0[end], m)
+    r0, s0, t0 = [MOD(m)(rni*u) for u in (r0, s0, t0)]
+
+    ## verify
+    ## chk = poly_zchop(MOD(m)(r0  ⊕ -(s0 ⊗ ps ⊕ t0 ⊗ qs)))
+
+    r0, s0, t0
+            
+    
+end
 
 ## find gcd(fbar, gbar) where fbar = f mod Z/pZ
-function poly_gcd_over_Zp{T<:Integer}(as::Vector{T}, bs::Vector{T}, p::T)
+function poly_gcd_over_Zp{T<:Integer, S<:Integer}(as::Vector{T}, bs::Vector{T}, p::S)
+    r0, s0, t0 = poly_bezout_over_Zp(as, bs, p)
+    return poly_monic_over_Zp(r0, p)
+    
+    ## R = promote_type(T, S)
 
-    ps = T[mod(a,p) for a in as] |> poly_zchop
-    qs = T[mod(b,p) for b in bs] |> poly_zchop
+    ## qs = R[mod(b,p) for b in bs] |> poly_zchop
+    ## qs == R[] && return ones(R, 1) # divide by 0?
 
-    while true
-        qs == zeros(T,1) || length(qs) == 0 && break
-        ps, qs = qs, poly_rem_over_Zp(ps, qs, p)
-    end
+    ## ps = R[mod(a,p) for a in as] |> poly_zchop
+    ## p = convert(R,p)
+    
+    ## while true
+    ##     qs == zeros(R,1) || qs == R[] && break
+    ##     ps, qs = qs, poly_rem_over_Zp(ps, qs, p)
+    ## end
 
-    # monic
-    T[mod(k,p) for k in ps * invmod(ps[end], p)]
+    ## # monic
+    ## T[mod(k,p) for k in ps * invmod(ps[end], p)]
 end
 
 ## much faster modular gcd

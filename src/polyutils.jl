@@ -104,7 +104,7 @@ If p(x) = (x-c)^k q(x) then return q(x), k (assuming x-c does not divide q(x))
 function deflate{T}(p::Poly{T}, c::T)
     k = 0
     q, r = divrem(p,c)
-    while abs(x) <=eps(x)
+    while abs(r) <=eps(T)
         p = q
         q,r = divrem(p, c)
         k = k + 1
@@ -130,6 +130,33 @@ function deflate{T,S}(p::Poly{T}, fac::Poly{S})
     p, k
 end
 
+function deflate_over_Zp{T,S}(f::Vector{T}, g::Vector{S}, p)
+    fac = convert(Vector{T}, g)
+    q,r = poly_divrem_over_Zp(f, fac, p)
+    k = 0
+    while r == T[]
+        q == T[] && break
+        f = q
+        q,r = poly_divrem_over_Zp(f, fac, p)
+        k = k + 1
+    end
+    f, k
+end
+
+## find multiplicities
+## R a type, f a poly, ps the factors
+## finds the order, returns a dictionary
+function find_multiplicities(R, f, ps)
+    G1 = Dict{Poly{R},Int}()
+    for p in ps
+        haskey(G1, p) && continue
+        f, k = deflate(f, p)
+        G1[p] = k
+    end
+
+    G1
+
+end
 
 
 ## Special matrices related to polynomial factorization
@@ -180,31 +207,10 @@ function resultant{R}(f::Poly{R}, g::Poly{R})
 end
 
 
-## Polynomial transformations. From XXX
-" `R(p)` finds  `x^n p(1/x)` which is a reversal of coefficients "
-R(p) = Poly(reverse(p.a), p.var)
-
-" `p(λ x)`: scale x axis by λ "
-Hλ(p, λ=1//2) = polyval(p, λ * variable(p))
-
-" `p(x + λ)`: Translate polynomial left by λ "
-Tλ(p, λ=1)   = polyval(p, variable(p) + λ)
-
-" shift and scale p so that  [c,c+1]/2^k -> [0,1] "
-function Pkc(p::Poly, k, c)
-    n = degree(p)
-    2^(k*n) * Hλ(Tλ(p, c/2^k), 1/2^k)
-end
 
 ## some things we can use `Polynomial` class, for others we need
 ## to use `Vector{T}`. Here are some methods, prefaced with `poly_`
 ## poly a0 + a1x + ... + an x^n --> [a0, a1,..., an]
-
-
-function poly_primitive{T}(as::Vector{T})
-    g = gcd(as)
-    poly_zchop(T[div(a,g) for a in as])
-end
 
 ## chop off leading 0s or return T[]
 function poly_zchop{T}(x::Vector{T})
@@ -212,6 +218,29 @@ function poly_zchop{T}(x::Vector{T})
         x[i] != zero(T) && return x[1:i]
     end
     T[]
+end
+
+# degree, zero = T[] has degree -1, other constants degree 0.
+poly_degree{T}(as::Vector{T}) = length(poly_zchop(as)) - 1
+
+poly_variable{T}(as::Vector{T}) = T[zero(T), one(T)]
+
+function poly_monic_over_Zp(as, p)
+    as = poly_zchop(MOD(p)(as))
+    MOD(p)(invmod(as[end],p) * as)
+end
+        
+function poly_primitive{T}(as::Vector{T})
+    g = gcd(as)
+    poly_zchop(T[div(a,g) for a in as])
+end
+
+## a random poly of degree a < n
+function poly_random_poly_over_Zp(T, n, p)
+    a = rand(0:(p-1), n)
+    a = convert(Vector{T}, a) |> poly_zchop
+    a == T[] && return poly_random_poly_over_Zp(T, n, p)
+    poly_monic_over_Zp(a, p)
 end
 
 
@@ -237,8 +266,18 @@ function poly_mul{T,S}(as::Vector{T}, bs::Vector{S})
 end
 ⊗{T,S}(as::Vector{T}, bs::Vector{S}) = poly_mul(as,bs)
     
+    ## XX remove this, for testing only
+    export ⊗, ⊕
 
-
+function poly_der{T}(f::Vector{T})
+    n = length(f) - 1
+    fp = zeros(T, length(f) - 1)
+    for i in 1:n
+        fp[i] = i*f[i+1]
+    end
+    poly_zchop(fp)
+end
+       
 
 ##################################################
 ## assume  poly in R[x],  R a ring.
@@ -288,14 +327,15 @@ function newton_inversion{T}(f::Poly{T}, l::Int)
 end
 
 function newton_inversion{T}(f::Vector{T}, l::Int)
+    f = poly_zchop(f)
     f[1] == one(T) || error("need f(0) to be 1")
     g = ones(T, 1)
     r = ceil(Int, log2(l))
     for i in 1:r
-        g = 2g ⊕ -f ⊗ g ⊗ g
-        g = g[1:2^i]
+        g = 2g ⊕ (-f) ⊗ g ⊗ g
+        g = 2^i < length(g) ? g[1:2^i] : g
     end
-    g[1:l]
+    l < length(g) ? g[1:l] : g
 end
 """
 
@@ -459,6 +499,8 @@ end
 Return square free version of `f`
 """
 function square_free{T<:Integer}(f::Poly{T})
+    degree(f) <= 1 && return f
+    
     g = gcd(f, f')  # monic
     d = degree(g) 
     
@@ -470,4 +512,11 @@ function square_free{T<:Integer}(f::Poly{T})
     fsq
 end
  
-    
+ ## square free
+function poly_square_free_over_Zp{T}(f::Vector{T}, p::T)
+    g = poly_gcd_over_Zp(f, poly_der(f), p)
+    if poly_degree(g) > 0
+        f = poly_div_over_Zp(f, g, p)
+    end
+    f
+end
