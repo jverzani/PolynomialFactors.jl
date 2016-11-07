@@ -37,7 +37,7 @@ function MOD(p, center=true)
     f -> begin
         ps = copy(coeffs(f))
         S = div(p,2)
-        for i in eachindex(f)
+        for i in 0:degree(f) #eachindex(f)
             a = mod(f[i], p)
             if (center && a > S) a = a - p end
             ps[i+1] = a
