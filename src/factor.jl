@@ -6,58 +6,57 @@
 ##   this might make larger ones possible. As right now, limited: can't do x^100 -1 primes to big
 ## * LLL -- large n are really poor -- can't do x^60 - 1 too many combinations
 
-## Algorithm 14.13 
-function poly_factor_over_Zp{R,S}(f::Vector{R}, q::S, d=1)
+## Algorithm 14.13
+function poly_factor_over_Zp{R,S}(a::Poly{R}, m::S, d=1)
     T = promote_type(R,S)
-    p = convert(T, q)
-
-    hi = x = T[zero(T), one(T)]
-    v = poly_monic_over_Zp(convert(Vector{T}, f), p)
+    f,p = convert(Poly{T}, a), convert(T,m)
+    
+    hi = x = variable(T)
+    v = poly_monic_over_Zp(f, p)
 
     i= 0
-    U = Dict{Vector{T}, Int}()
-
+    U = Dict{Poly{T}, Int}()
     
     while true
         i = i + 1
         hi = poly_powermod_over_Zp(hi, p, f, p)
-        g = poly_gcd_over_Zp(hi ⊕ -x, v, p)
+        g = poly_gcd_over_Zp(hi -x, v, p)
 
-        if poly_degree(g) > 0
-            factors = equal_degree_factorization_over_Zp(g, p, i)
-            for fac in factors
+        if degree(g) > 0
+            facs = equal_degree_factorization_over_Zp(g, p, i)
+            for fac in facs
                 fac = MOD(p)(fac)
                 v, k = deflate_over_Zp(v, fac, p)
-                U[fac] = get(U,fac,0) + k
+                U[fac] = get(U, fac, 0) + k
             end
         end
 
-        poly_degree(v) <= 0 && break
+        degree(v) <= 0 && break
     end
 
     U
 end
+
 ###
-function equal_degree_factorization_over_Zp{T <: Integer}(f::Vector{T}, p::T, d::Integer, MAXSTEPS=32)
+function equal_degree_factorization_over_Zp{T <: Integer}(f::Poly{T}, p::T, d::Integer, MAXSTEPS=32)
 
-    fail = Any[T[]]
+    fail = Poly{T}[zero(f)]
 
-    n = poly_degree(f)
+    n = degree(f)
     n == 0 && return fail
-    n == 1 && return Any[f]
-    n == d && return Any[f]
-
+    n == 1 && return Poly{T}[f]
+    n == d && return Poly{T}[f]
     g = equal_degree_splitting_over_Zp(f, big(p), d, MAXSTEPS)
-    poly_degree(g) <= 0 && return fail
+    degree(g) <= 0 && return fail
 
-    g1, g2 = g, poly_div_over_Zp(f, g, big(p))
+    g1, g2 = g, poly_div_over_Zp(f, g, p)
 
-    out = Any[]
+    out = Poly{T}[]
     for h in (g1, g2)
-        if poly_degree(h) == d
+        if degree(h) == d
             push!(out, h)
         else
-            append!(out, equal_degree_factorization_over_Zp(h, big(p), d, 32)) # must have something
+            append!(out, equal_degree_factorization_over_Zp(h, p, d, 32)) # must have something
         end
     end
     
@@ -65,10 +64,10 @@ function equal_degree_factorization_over_Zp{T <: Integer}(f::Vector{T}, p::T, d:
 end
 
 ## use random algorithm to find factor
-function equal_degree_splitting_over_Zp{T}(f::Vector{T}, p::Integer, d::Integer, MAXSTEPS=16)
-    fail = T[]
+function equal_degree_splitting_over_Zp{T}(f::Poly{T}, p::Integer, d::Integer, MAXSTEPS=16)
+    fail = zero(f)
     
-    n = poly_degree(f)
+    n = degree(f)
     n <= 0 && return fail
     n == 1 && return f
     n == d && return f
@@ -78,7 +77,7 @@ function equal_degree_splitting_over_Zp{T}(f::Vector{T}, p::Integer, d::Integer,
     ctr = 1
     while ctr <= MAXSTEPS
         g = _equal_degree_splitting_call(f, p, d)
-        poly_degree(g) > 0 && return g
+        degree(g) > 0 && return g
         ctr = ctr + 1
     end
     return fail
@@ -87,84 +86,78 @@ end
 
 ## Algorithm 14.8
 ## find random monic of degree d that divides f
-function _equal_degree_splitting_call{T}(f::Vector{T}, p::T, d::Integer)
-    fail = T[]
+function _equal_degree_splitting_call{T}(f::Poly{T}, p::T, d::Integer)
+    fail = zero(f)
     # q divides d < n = degree(f)!!
     k = 1
     q = p^k
-    n = poly_degree(f)
+    n = degree(f)
     
 
     a = poly_random_poly_over_Zp(T, n, p)
 
     g = poly_gcd_over_Zp(a, f, p)
-    poly_degree(g) > 0 && return g
+    degree(g) > 0 && return g
 
     if isodd(p)
         n1 = (q^d - 1) ÷ 2
         b = poly_powermod_over_Zp(a, n1, f, p)
     else
-        b = reduce(⊕, ([poly_powermod_over_Zp(a, 2^i, f, p) for i in 0:((k*d)-1)]))   # trace polynomial
+        m = k*d
+        ## trace poly Tm = x^2^(m-1) + x^2^(m-2) + ... + x^4 + x^2 + x; this is Tm(a) (p399, p14.16)
+        b = prod([poly_powermod_over_Zp(a, 2^i, f, p) for i in 0:(m-1)])
         b = poly_rem_over_Zp(b, f, p)
     end
 
-
-    g = poly_gcd_over_Zp(b ⊕ (-ones(T,1)), f, p)
-    1 <= poly_degree(g) < n && return g # does split
+    g = poly_gcd_over_Zp(b - one(f), f, p)
+    1 <= degree(g) < n && return g # does split
 
     return fail
 end
 
 
 
-### Factor over Z[x]
 ##################################################
+### Factor over Z[x]
 ##
 ## code to find factors from factors over Z/pZ
 
-
 ## Split set S into two pieces by index. Like partition from iterators
-_partition_by{T}(S::Vector{T}, inds) = [S[i] for i in inds], [S[j] for j in setdiff(1:length(S), inds)]
+_partition_by{T}(S::Vector{T}, inds) = T[S[i] for i in inds], T[S[j] for j in setdiff(1:length(S), inds)]
 
-## poly
-function _poly_fish_out(S::Vector, k, p, l, b,B)
-    fail = zero(S[1])
-    T = eltype(S[1])
+## This code tries all combinations of the irreducible factors over Z_p^l to see
+## which correspond to irreducible factors over Z. For some polynomials, it
+## will try all factors out, which will not scale well. 
+function _poly_fish_out{T}(S::Vector{Poly{T}}, k, p, l, b,B)
+    fail = zero(Poly{T})
     
-    k > length(S) && return fail,Int[]
+    k > length(S) && return fail, Int[]
     
     for cmb in combinations(1:length(S), k)
+#        length(cmb) == length(S) && continue # g would be empty in this case
         gs, hs = _partition_by(S, cmb)
-        (length(gs) == 0 || length(hs) == 0)
-        if length(gs) == 0
-            g = ones(T,1)
-        else
-            g = MOD(p^l, true)(b * reduce(⊗, [MOD(p^l,true)(g) for g in gs]))
-        end
-        if length(hs) == 0
-            h = ones(T, 1)
-        else
-            h = MOD(p^l,true)(b * reduce(⊗, [MOD(p^l,true)(h) for h in hs]))
-        end
-        
-        norm(g,1) * norm(h,1) <= B && return (poly_primitive(g), cmb)
+        g = length(gs) > 0 ? MOD(p^l)(b * prod([MOD(p^l)(g) for g in gs])) : one(Poly{T})
+        h = length(hs) > 0 ? MOD(p^l)(b * prod([MOD(p^l)(h) for h in hs])) : one(Poly{T})
+        ## check size
+        norm(g,1) * norm(h,1) <= B && return (primitive(g), cmb)
     end
     return fail,Int[]
 end
 
 ## There are terms Ts that need piecing together to make factors
 ## Here R is a type, 
-function poly_fish_out(R, Ts, p, l, b, B)
-    T = eltype(Ts[1])
-    G = Poly{R}[] #Any[] #Poly{R}[]
+function poly_fish_out(tau, p, l, b, B)
+    Ts = all_children(tau)
+    T = typeof(tau.fg)
+    G = T[] 
     n = length(Ts)
-    ZERO = T[]
+    ZERO = zero(T)
     for k = 1:n
         k > length(Ts) && break
         fac, inds = _poly_fish_out(Ts, k, p, l, b, B)
-        while poly_zchop(fac) != ZERO
-            push!(G, Poly(fac))
-            Ts = Ts[setdiff(1:length(Ts),inds)]
+        while fac != ZERO
+            push!(G, fac)
+            Ts = Ts[setdiff(1:length(Ts), inds)]
             k > length(Ts) && break
             fac, inds = _poly_fish_out(Ts, k, p, l, b, B)
         end
@@ -192,35 +185,39 @@ for f,g,h,s,t in Z[x]  or Z/pZ[x] with
 
 output g*,h*,s*,t* in Z/m^2Z[x] with 1) - 4) holding over m^2
 """
-function hensel_step{T}(f::Vector{T}, g::Vector, h::Vector, s::Vector, t::Vector, m)
-    ## check
-    mod(sum(MOD(m)(f) ⊕ -MOD(m)(g) ⊗ MOD(m)(h)),m) == zero(T) || error("need f = gh mod m for inputs")
-    h = poly_zchop(h)
+function hensel_step{T}(f::Poly{T}, g::Poly, h::Poly, s::Poly, t::Poly, m)
+    ## check conditions
+    MOD(m)(f - g*h) == zero(f) || error("need f = gh mod m for inputs")
     h[end] == 1 || error("need h monic")
-    poly_degree(f) == poly_degree(g) + poly_degree(h)  || error("need deg f = deg g + deg h")
-    poly_degree(s) < poly_degree(h) || error("need deg s < deg h")
-    poly_degree(t) < poly_degree(g) || error("need deg t < deg g")
 
+    degree(f) == degree(g) + degree(h)  || error("need deg f = deg g + deg h")
+    degree(s) < degree(h) || error("need deg s < deg h")
+    degree(t) < degree(g) || error("need deg t < deg g")
+
+    const ONE = one(Poly{T})
     fbar, gbar, hbar, sbar, tbar =   [MOD(m^2)(u) for u in (f,g,h,s,t)]
 
-    ebar = MOD(m^2)(fbar ⊕ (-gbar ⊗ hbar))
-    qbar,rbar = fast_divrem(sbar ⊗ ebar, hbar, m^2)
+    ebar = MOD(m^2)(fbar -gbar * hbar)
+    qbar,rbar = fast_divrem(sbar * ebar, hbar, m^2)
 
-    gstar = MOD(m^2)(gbar  ⊕ (tbar ⊗ ebar) ⊕ (qbar ⊗ gbar))
-    hstar = MOD(m^2)(hbar ⊕ rbar)
+    gstar = MOD(m^2)(gbar  + tbar * ebar + qbar * gbar)
+    hstar = MOD(m^2)(hbar + rbar)
     
-    bbar = MOD(m^2)((sbar ⊗ gstar) ⊕ (tbar ⊗ hstar) ⊕ (-ones(T,1)))
-    cbar, dbar = fast_divrem(sbar ⊗ bbar, hstar, m^2)
+    bbar = MOD(m^2)(sbar * gstar + tbar * hstar - ONE)
+    cbar, dbar = fast_divrem(sbar * bbar, hstar, m^2)
 
     
-    sstar = MOD(m^2)(sbar ⊕ (-dbar))
-    tstar = MOD(m^2)(tbar ⊕ (-tbar ⊗ bbar) ⊕ (-cbar ⊗ gstar))
+    sstar = MOD(m^2)(sbar - dbar)
+    tstar = MOD(m^2)(tbar -tbar * bbar - cbar * gstar)
 
-    vfy = MOD(m^2)(fbar ⊕ (-gstar ⊗ hstar)) ## should be 0
-    
+    ## both these should be zero
+#    vfy = MOD(m^2)(fbar + (-gstar * hstar)) 
+#    vfy = MOD(m^2)(sstar * gstar + tstar * hstar - ONE)
+            
     gstar, hstar, sstar, tstar 
 end
 
+# collect factors into a tree for apply HenselStep
 abstract AbstractFactorTree
 
 type FactorTree <: AbstractFactorTree
@@ -236,7 +233,7 @@ type FactorTree_over_Zp <: AbstractFactorTree
     children
     s
     t
-    FactorTree_over_Zp(fg, p) = new(MOD(p)(reduce(⊗,fg)), Any[])
+    FactorTree_over_Zp(fg, p) = new(MOD(p)(prod(fg)), Any[])
 end
 
 function make_factor_tree_over_Zp(x, p)
@@ -249,36 +246,14 @@ function make_factor_tree_over_Zp(x, p)
     l, r = x[1:k], x[(k+1):end]
     tau.children = Any[make_factor_tree_over_Zp(l, p), make_factor_tree_over_Zp(r, p)]
     g, s, t = poly_bezout_over_Zp(tau.children[1].fg, tau.children[2].fg, p)
-    gi = invmod(g[1], p)
+    gi = invmod(g[0], p)  
     tau.s = MOD(p)(s * gi); tau.t = MOD(p)(t * gi)
     tau
 end
 
-## ## use array for polys, not `Poly` class
-## function factor_tree_as_poly(T, tau, m)
-##     tau.fg = T[mod(convert(T,a),m) for a in coeffs(tau.fg)]
-##     length(tau.children) == 0 && return
-##     l,r = tau.children
-##     tau.s =  T[mod(convert(T,a),m) for a in coeffs(tau.s)]
-##     tau.t =  T[mod(convert(T,a),m) for a in coeffs(tau.t)]
-##     factor_tree_as_poly(T,l,m)
-##     factor_tree_as_poly(T,r,m)
-## end
-
-
-has_children(tau::AbstractFactorTree) = length(tau.children) == 2
-
-function all_children(tau::AbstractFactorTree)
-    if has_children(tau)
-        kids = vcat(all_children(tau.children[1]), all_children(tau.children[2]))
-    else
-        kids = Any[tau.fg]
-    end
-    kids
-end
 
 function hensel_step_update_factor_tree!(tau, p)
-    length(tau.children) == 0 && return 
+    !has_children(tau) && return 
     l,r = tau.children
     f, g,h,s,t = tau.fg, l.fg, r.fg, tau.s, tau.t
     g1,h1,s1,t1 = hensel_step(f, g, h, s, t, p)
@@ -288,6 +263,11 @@ function hensel_step_update_factor_tree!(tau, p)
     hensel_step_update_factor_tree!(r, p)
 end
 
+has_children(tau::AbstractFactorTree) = length(tau.children) == 2
+
+function all_children(tau::AbstractFactorTree)
+   has_children(tau) ? vcat(all_children(tau.children[1]), all_children(tau.children[2])) : [tau.fg]
+end
 
                                         
 """
@@ -295,9 +275,8 @@ end
 Algo 15.17 multifactor Hensel lifting
 
 """
-function hensel_lift{T}(f::Vector{T}, m::T, a0, l)
-    
-    facs = poly_factor_over_Zp(a0 * f, m) |> keys |> collect
+function hensel_lift{T}(f, facs, m::T, a0, l)
+
     tau = make_factor_tree_over_Zp(facs, m)
     
     d = ceil(Int, log2(l))
@@ -307,7 +286,7 @@ function hensel_lift{T}(f::Vector{T}, m::T, a0, l)
         hensel_step_update_factor_tree!(tau, m^2^(j-1))
     end
 
-    a0, tau    
+    tau
 end
 
 
@@ -318,43 +297,43 @@ Algorithm 15.19
 Factoring using Hensel Lifting, Zassenhaus' algorithm
 
 """
-function factor_square_free_zassenhaus{T<:Integer}(f::Vector{T})
+function factor_square_free_zassenhaus{T<:Integer}(f::Poly{T})
 
-    f = poly_zchop(f)
     if f[end] < 0
         f = -f
     end
 
-    n = poly_degree(f)
-    n == 0 && error("Must have non-constant polynomial")
-    n == 1 && return [Poly(f)]
+    n = degree(f)
+    if n == 0
+        f == zero(f) && return Dict(f => 0)
+        return Dict{Poly{T},Int}()
+    end
+    n == 1 && return [f]
 
     A = norm(f, Inf)
     b = f[end]
     B = sqrt(n+1) * 2.0^n * A * b
     C = (n+1.0)^(2.0 * n) * A^(2.0 * n-1)
-    
     gamma = ceil(BigInt, 2log2(C))
     M = 2gamma * log(gamma)
 
     isnan(M) && error("Sorry, we need to get smarter, as primes needed are too big")
-#    M/2 > typemax(Int) && println("Sorry, primes needed are too big for this implementation")    ## use SymEngine..
 
     p = floor(BigInt, M/2)
     while true
         p = nextprime(p)
-        rem(b,p) != 0 && poly_degree(poly_gcd_over_Zp(f, poly_der(f), p)) <= 0 && break
+        rem(b,p) != 0 && degree(poly_gcd_over_Zp(f, f', p)) <= 0 && break
     end
 
     l = ceil(T, log(p, 2B+1))
     a0 = invmod(b, p)
-    a0, tau = hensel_lift(f, p, a0, l)
 
-    facs = all_children(tau)
-    ps = poly_fish_out(T, facs, p, l, b, B) 
+    ## three steps of factoring: over p; lifting to p^l; sorting out irreducibles over Z
+    facs = poly_factor_over_Zp(a0 * f, p) |> keys |> collect
+    tau = hensel_lift(f, facs, p, a0, l)
+    ps = poly_fish_out(tau, p, l, b, B) 
     
 end
-  
 
 
 function factor_zassenhaus{T<: Integer}(f::Poly{T})
@@ -364,7 +343,7 @@ function factor_zassenhaus{T<: Integer}(f::Poly{T})
         f = Poly(coeffs(f)[2:end])
     end
     
-    fsq = convert(Poly{BigInt}, f) |> square_free |> coeffs |> poly_primitive
+    fsq = convert(Poly{BigInt}, f) |> square_free |> primitive
     
     ps = factor_square_free_zassenhaus(fsq)
 
@@ -482,19 +461,13 @@ Factor a polynomial `f` in Z[x] over Z/pZ[x], p a prime (not equal to 2).
 
 """
 function factormod{T<:Integer,S<:Integer}(f::Poly{T}, p::S)
-    U = poly_factor_over_Zp(coeffs(f), p)
-    [Poly(k)=>v for (k,v) in U]
+    g = convert(Poly{BigInt}, f)
+    U = poly_factor_over_Zp(g, p)
+    [convert(Poly{T}, v) => k for (v,k) in U]
 end
 
 
 
 
-## Try to speed up the initial calsl
-precompile(gcd, (Poly{Int},Poly{Int}))
-precompile(modular_gcd_small_prime,  (Poly{Int},Poly{Int}))
-precompile(factor_square_free_zassenhaus, (Poly{Int},))
-precompile(factor, (Poly{Int},))
-precompile(factor, (Poly{BigInt},))
-precompile(factor, (Poly{Rational{Int}},))
-precompile(factor, (Poly{Rational{BigInt}},))
+
 

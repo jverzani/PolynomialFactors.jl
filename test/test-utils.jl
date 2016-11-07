@@ -12,20 +12,14 @@ println("Testing utils.jl")
 @test PolynomialFactors.nextprime(big(400)) == 401
 
 ## EEA
-x = variable(Zn{5})
-f = (x-1)^2*(x-3)^2
-rs, ss, ts = PolynomialFactors.EEA(f, f')
-@test rs[end] == (x-1)*(x-3)
+a, b = 2*3*7, 3*7*9
+rs, ss, ts = PolynomialFactors.EEA(a, b)
+@test reduce(&, [rs[i] - (ss[i] * a + ts[i] * b) == 0 for i in eachindex(rs)])
 
 
 ## bezout
-p = (x-1)^2*(x-2)*(x-3)
-q = (x-1)*(x-2)
-
-g,u,v = PolynomialFactors.bezout(p,q)
-
-@test g == (x-1)*(x-2)
-@test u*p + v*q == g
+g,u,v = PolynomialFactors.bezout(a,b)
+@test u*a + v*b == g
 
 
 ## Chinese remainer theorem

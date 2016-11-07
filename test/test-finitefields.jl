@@ -56,3 +56,19 @@ f = (x-1)*(x-2)^2*(x-3)^3
 g = gcd(f, f')
 @test g == (x-2) * (x-3)^2
 
+
+## polys in Fq woth q = p^d
+## need small values to work here...
+p,d = 5,2
+x = variable(GF{p,d})
+p = x^2*(x-1)^3*(x-2)^4*(x-3)^5*(x-4)^6
+U = factor(p)
+@test U[x-3] == 5
+
+
+x = variable(PolynomialFactors.Zn{2})
+p = x^8 * (x + 1)^10
+U = factor(p)
+@test U[x] == 8
+
+

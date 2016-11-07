@@ -60,11 +60,19 @@ end
 
 println("Test factor over Poly{BigInt}")
 ## BigInt
-## issue #40
+## issue #40 in Roots.jl
 x = variable(BigInt)
 f = x^2 - big(2)^256
 U = factor(f)
 @test U[x - big(2)^128] == 1
+
+
+p = x^15 - 1
+@test length(factor(p)) == 4
+
+p = 1 + x^3 + x^6 + x^9 + x^12
+@test length(factor(p)) == 2
+
 
 ## Wilkinson (good out to 50 or so, then issues)
 W(n) = prod([x-i for i in 1:20])
@@ -128,35 +136,14 @@ println("Test factormod")
 ## factormod
 x = variable(BigInt)
 
-p = x^15 - 1
-@test length(factor(p)) == 4
-
-p = 1 + x^3 + x^6 + x^9 + x^12
-@test length(factor(p)) == 2
-
-
 C10 = x^4 - x^3 + x^2 -x + 1
 U = PolynomialFactors.factormod(C10, 5)
-@test U[PolynomialFactors.Znx(5, x+1)] == 4
+@test U[1+x] == 4
 
 C25 = x^20 + x^15 + x^10 + x^5 + 1
 U = PolynomialFactors.factormod(C25, 5)
-@test U[PolynomialFactors.Znx(5, x-1)] == 20
+@test U[x-1] == 20
 
 U = PolynomialFactors.factormod(x^4 + 1, 5)
-@test U[PolynomialFactors.Znx(5, x^2 + 2)] == 1
-@test U[PolynomialFactors.Znx(5, x^2 - 2)] == 1
-
-x = variable(PolynomialFactors.Zn{2})
-p = x^8 * (x + 1)^10
-U = factor(p)
-@test U[x] == 8
-
-
-## polys in Fq woth q = p^d
-## need small values to work here...
-p,d = 5,2
-x = variable(GF{p,d})
-p = x^2*(x-1)^3*(x-2)^4*(x-3)^5*(x-4)^6
-U = factor(p)
-@test U[x-3] == 5
+@test U[x^2 + 2] == 1
+@test U[x^2 - 2] == 1

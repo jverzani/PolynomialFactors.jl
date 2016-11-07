@@ -1,3 +1,137 @@
+##################################################
+
+### Polynomial Ring operations, Z/nZ = Z_n; Z_n[x]
+
+oo = -1
+"""
+convert poly to one over Zp. If `p=oo`converts Zp[x] poly to Z[x] poly
+"""
+function Znx(p, f)
+    if p == oo
+        T = typeof(f[0].k)
+        convert(Poly{T}, f)
+    else
+        convert(Poly{ModInt{p,true}}, f)
+    end
+end
+
+## hashing of polynomials is work...
+function Base.hash{p,B}(f::Poly{ModInt{p,B}})
+    ks = [m.k for m in coeffs(f)]
+    hash((ks, f.var))
+end
+
+function Base.hash{p,d}(f::Poly{GF{p,d}})
+    ks = [hash(m.h) for m in coeffs(f)]
+    hash((ks, map(hash, f[0].I.gens), f.var))
+end
+
+
+"""
+
+Create polynomials over Zn.
+
+Example
+```
+Z_n([3,4,5,6], 4)
+(Poly(3 + x^2 + 2⋅x^3)) mod 4
+```
+
+
+(Z/pZ)[x] is same as GF{p,1}, but this gives a simpler representation.
+
+"""
+Z_n(as, n) = Poly(map(u->Zn{n}(u), as))
+Base.eps{n,B}(::Poly{ModInt{n,B}}) = ModInt{n,B}(0)
+
+
+"""
+For coprime g, h find s*g = t*h = 1 mod m
+"""
+function bezout_over_m{R <: Integer}(f::Poly{R},g::Poly{R}, m)
+    us, ss, ts = EEA(Znx(m,f), Znx(m,g))
+    sbar, tbar = ss[end] / us[end][end], ts[end] / us[end][end]
+    Znx(oo, sbar), Znx(oo, tbar)
+end
+
+## solve f * w = q mod p; w,q = Zp[x]
+function _solve_fwq(w, q)
+    m,n = degree(w), degree(q)
+    A = cauchy_matrix(w, n - m + 1)
+    M = hcat(A, reverse(q.a))
+    p = reverse(q.a)
+
+
+    m11 = inv(M[1,1])
+    fs = m11 * [p[1]]
+
+    for i = 2:n
+        a = (p[i] - (fs .* M[i,1:(i-1)])[1]) * m11
+        push!(fs, a)
+    end
+    pop!(fs) == 0 || return zero(w)
+    
+    Poly(reverse(fs))
+end
+   
+## ### Find a gcd over Z[x] using modular arithmetic
+## function _gcd_over_Zp{Z <: Integer}(f::Poly{Z}, g::Poly{Z}, p::Int)
+##     #u = gcd(Znx(p,f), Znx(p,g))
+##     # u = bezout ...
+##     #return monic(u)
+
+##     fbar = convert(Poly{Zn{p}}, f)
+##     gbar = convert(Poly{Zn{p}}, g)
+
+    
+##     u = _gcd(fbar, gbar)
+##     monic(u)
+
+    
+## end
+
+
+"""
+
+Algorithm 6.34 big prime modular GCD for Z[x]
+
+Not complete, but working okay.
+
+Note: being able to handle Zn{BigInt{p}} would be helpful here.
+
+"""
+function modular_gcd_big_prime{T<:Integer}(f::Poly{T}, g::Poly{T})
+    A =  max(norm(f, Inf), norm(g, Inf))
+    b = gcd(lc(f), lc(g))
+    n = degree(f)
+    B = sqrt(n + 1) * 2^n * A * b
+
+    M = 1000
+    Br = M^ceil(Int, log(M, B))  # uses fewer primes, avoid recompilation when parameterized by p
+    
+    p = Br
+
+    while true
+        p = nextprime(p)
+    
+        fbar = Znx(p, f)
+        gbar = Znx(p, g)
+        vbar = bezout(fbar, gbar)[1]
+        vbar = b * monic(vbar)
+
+        w1 = Znx(oo, vbar)
+        return primitive(w1)
+        ## XXX something wrong here for certain sizes...
+        fstar = _solve_fwq(vbar, b*fbar)
+        gstar = _solve_fwq(vbar, b*gbar)
+        (fstar == zero(vbar) || gstar == zero(vbar)) && next
+
+        f1, g1 = Znx(oo, fstar), Znx(oo, gstar)
+        
+        (norm(f1, 1) * norm(w1,1) <= Br) &&  (norm(g1, 1) * norm(w1,1) <= Br) && return primitive(w1)
+    end
+end
+
 
 
 """
@@ -302,8 +436,33 @@ for f,g,h,s,t in Z[x]  or Z/pZ[x] with
 
 output g*,h*,s*,t* in Z/m^2Z[x] with 1) - 4) holding over m^2
 """
-function hensel_step(f::Poly, g::Poly, h::Poly, s::Poly, t::Poly, m)
-    [Znx(m^2, a) for a in hensel_step(f.a, g.a, h.a, s.a, t.a, m)]
+function hensel_step{T}(f::Vector{T}, g::Vector, h::Vector, s::Vector, t::Vector, m)
+    ## check
+    mod(sum(MOD(m)(f) ⊕ -MOD(m)(g) ⊗ MOD(m)(h)),m) == zero(T) || error("need f = gh mod m for inputs")
+    h = poly_zchop(h)
+    h[end] == 1 || error("need h monic")
+    poly_degree(f) == poly_degree(g) + poly_degree(h)  || error("need deg f = deg g + deg h; have: ")
+    poly_degree(s) < poly_degree(h) || error("need deg s < deg h")
+    poly_degree(t) < poly_degree(g) || error("need deg t < deg g")
+
+    fbar, gbar, hbar, sbar, tbar =   [MOD(m^2)(u) for u in (f,g,h,s,t)]
+
+    ebar = MOD(m^2)(fbar ⊕ (-gbar ⊗ hbar))
+    qbar,rbar = fast_divrem(sbar ⊗ ebar, hbar, m^2)
+
+    gstar = MOD(m^2)(gbar  ⊕ (tbar ⊗ ebar) ⊕ (qbar ⊗ gbar))
+    hstar = MOD(m^2)(hbar ⊕ rbar)
+    
+    bbar = MOD(m^2)((sbar ⊗ gstar) ⊕ (tbar ⊗ hstar) ⊕ (-ones(T,1)))
+    cbar, dbar = fast_divrem(sbar ⊗ bbar, hstar, m^2)
+
+    
+    sstar = MOD(m^2)(sbar ⊕ (-dbar))
+    tstar = MOD(m^2)(tbar ⊕ (-tbar ⊗ bbar) ⊕ (-cbar ⊗ gstar))
+
+    vfy = MOD(m^2)(fbar ⊕ (-gstar ⊗ hstar)) ## should be 0
+    
+    gstar, hstar, sstar, tstar 
 end
 
 

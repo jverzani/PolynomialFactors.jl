@@ -29,13 +29,19 @@ end
 ##
 include("utils.jl")
 include("polyutils.jl")
-include("finitefields.jl")
 include("zx.jl")
 include("factor.jl")
 
-export ModInt, Zn, GF
 export factor, rational_roots, factormod
 
+## ## Try to speed up the initial calsl
+## precompile(gcd, (Poly{Int},Poly{Int}))
+## precompile(modular_gcd_small_prime,  (Poly{Int},Poly{Int}))
+## precompile(factor_square_free_zassenhaus, (Poly{Int},))
+## precompile(factor, (Poly{Int},))
+## precompile(factor, (Poly{BigInt},))
+## precompile(factor, (Poly{Rational{Int}},))
+## precompile(factor, (Poly{Rational{BigInt}},))
 
 
 end # module

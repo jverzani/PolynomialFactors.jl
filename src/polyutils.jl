@@ -11,6 +11,7 @@
 ## (We use polys for keys in dictionaries with `factor`)
 Base.hash(f::Poly) = hash((f.a, f.var))
 
+
 ## ## Make an iterator over terms of the polynomial
 ## Base.start(f::Poly) = degree(f)
 ## Base.next(f::Poly, state) = (f[state]*variable(f)^state, state-1)
@@ -130,14 +131,15 @@ function deflate{T,S}(p::Poly{T}, fac::Poly{S})
     p, k
 end
 
-function deflate_over_Zp{T,S}(f::Vector{T}, g::Vector{S}, p)
-    fac = convert(Vector{T}, g)
-    q,r = poly_divrem_over_Zp(f, fac, p)
+function deflate_over_Zp{T}(f::Poly{T}, g::Poly{T}, p)
+    const ZERO = zero(f)
+    
+    q,r = poly_divrem_over_Zp(f, g, p) # returns 0,0 if can't compute
     k = 0
-    while r == T[]
-        q == T[] && break
+    while r == ZERO
+        q == ZERO && break
         f = q
-        q,r = poly_divrem_over_Zp(f, fac, p)
+        q, r = poly_divrem_over_Zp(f, g, p)
         k = k + 1
     end
     f, k
@@ -225,9 +227,12 @@ poly_degree{T}(as::Vector{T}) = length(poly_zchop(as)) - 1
 
 poly_variable{T}(as::Vector{T}) = T[zero(T), one(T)]
 
-function poly_monic_over_Zp(as, p)
-    as = poly_zchop(MOD(p)(as))
-    MOD(p)(invmod(as[end],p) * as)
+## make monic as poly in Zp
+function poly_monic_over_Zp{T<:Integer}(a::Poly{T}, p)
+    b = MOD(p)(a)
+    b[end] == zero(T) && return a
+    bi = invmod(b[end], p)
+    MOD(p)(bi * b)
 end
         
 function poly_primitive{T}(as::Vector{T})
@@ -235,12 +240,13 @@ function poly_primitive{T}(as::Vector{T})
     poly_zchop(T[div(a,g) for a in as])
 end
 
-## a random poly of degree a < n
+## a monic, random poly of degree a < n
 function poly_random_poly_over_Zp(T, n, p)
     a = rand(0:(p-1), n)
-    a = convert(Vector{T}, a) |> poly_zchop
-    a == T[] && return poly_random_poly_over_Zp(T, n, p)
-    poly_monic_over_Zp(a, p)
+    a = convert(Vector{T}, a)
+    b = Poly(a)
+    b == zero(b) && return poly_random_poly_over_Zp(T, n, p)
+    poly_monic_over_Zp(Poly(b), p)
 end
 
 
@@ -322,9 +328,19 @@ Assumes f(0) = 1. Otherwise, use inv(f(0)) * f
 
 """
 function newton_inversion{T}(f::Poly{T}, l::Int)
-    u = newton_inversion(f.a, l)
-    Poly(u, f.var)
+    if f[0] == -one(T)
+        f = -f
+    end
+    f[0] == one(T) || error("Need f(0) to be 1")
+    g  = Poly(T[1])
+    r =  ceil(Int, log2(l))
+    for i in 1:r
+        g = 2g -f * g^2
+        g = Poly(g[0:(2^i-1)])  # truncate at power 2^i
+    end
+    g
 end
+  
 
 function newton_inversion{T}(f::Vector{T}, l::Int)
     f = poly_zchop(f)
@@ -350,8 +366,23 @@ Does not divide, so a, b in R[x]. Must assume b is monic.
 
 
 function fast_divrem{R}(a::Poly{R}, b::Poly{R})
-    qs, rs = fast_divrem(a.a, b.a)
-    Poly(qs, a.var), Poly(rs, a.var)
+    
+    b == zero(Poly{R})  && error("Assume b is neq 0 and monic: $b")
+    b[end] != one(R) && error("Assume b is neq 0 and monic: $b")
+    
+    degree(a) < degree(b) && return (zero(Poly{R}), as)
+    m = degree(a) - degree(b)
+
+    ra, rb1 = reverse(a), newton_inversion(reverse(b), m+1)
+
+    qstar = ra * rb1
+    qstar = Poly(qstar[0:(m+1)])
+    
+    q = Poly(R[qstar[i-1] for i in reverse(1:m+1)]) # reverse q but may need to pad 0s
+    r = a - b * q
+
+    (q, r)
+
 end
 
 function fast_divrem{R}(as::Vector{R}, bs::Vector{R})
@@ -390,6 +421,23 @@ function fast_divrem{R,T<:Integer}(as::Vector{R}, bs::Vector{R}, p::T)
     (qs, rs)
 end
 
+# fast divrem over Z/pZ
+function fast_divrem{T<:Integer,S<:Integer}(a::Poly{T}, b::Poly{T}, p::S)
+    
+    b == zero(Poly{T})  && error("Assume b is neq 0 and monic; $b")
+    b[end] != one(T) && error("Assume b is neq 0 and monic: $b")
+    
+    degree(a) < degree(b)  && return (zero(a), a)
+    m = degree(a) - degree(b)
+
+    ra, rb1 = reverse(a), newton_inversion(reverse(b), m+1)
+    
+    q = MOD(p)(ra * rb1)
+    q = Poly(reverse(q[0:m]), a.var)
+    r= MOD(p)(a - b*q)
+
+    (q, r)
+end
 
 """
 pseudo division with remainder over Z[x]. Does not assume b is monic

@@ -52,7 +52,7 @@ Dict{Polynomials.Poly{Int64},Int64} with 2 entries:
 ```  
 
 
-For some problems, big integers are necessary:
+For some problems, big integers are necessary to express the problem:
 
 ```
 julia> x = variable(BigInt)
@@ -72,16 +72,17 @@ Dict{Polynomials.Poly{BigInt},Int64} with 2 entries:
   Poly(3402823669209384634633… => 1
 ```  
 
-Factoring over the field Z_p, p a prime, is also provided by `factormod`:
+All factorization is done over `BigInt`, regardless of the type of variable.
+
+Factoring polynomial over the a finite field of coefficient, `Z_p[x]`, with `p` a prime, is also provided by `factormod`:
 
 ```
 julia> factormod(x^4 + 1, 2)
-Dict{Polynomials.Poly{PolynomialFactors.ModInt{2,true}},Int64} with 1 entry:
-  Poly(mod(1,2) + mod(1,2)⋅x) => 4
+Dict{Polynomials.Poly{BigInt},Int64} with 1 entry:
+  Poly(1 + x) => 4
 
 julia> factormod(x^4 + 1, 5)
-Dict{Polynomials.Poly{PolynomialFactors.ModInt{5,true}},Int64} with 2 entries:
-  Poly(mod(2,5) + mod(1,5)⋅x^… => 1
-  Poly(mod(-2,5) + mod(1,5)⋅x… => 1
-
+Dict{Polynomials.Poly{BigInt},Int64} with 2 entries:
+  Poly(2 + x^2)  => 1
+  Poly(-2 + x^2) => 1
 ```
