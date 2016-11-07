@@ -1,6 +1,6 @@
 # PolynomialFactors
 
-A package for factoring polynomials over the integers and rationals.
+A package for factoring polynomials with integer or rational coefficients over the integers.
 
 [![PolynomialFactors](http://pkg.julialang.org/badges/PolynomialFactors_0.4.svg)](http://pkg.julialang.org/?pkg=PolynomialFactors&ver=0.4)
 [![PolynomialFactors](http://pkg.julialang.org/badges/PolynomialFactors_0.5.svg)](http://pkg.julialang.org/?pkg=PolynomialFactors&ver=0.5)
@@ -13,9 +13,9 @@ Windows: [![Build Status](https://ci.appveyor.com/api/projects/status/github/jve
 
 For polynomials over the integers or rational numbers, this package provides
 
-* a `factor` command to factor over the integers
+* a `factor` command to factor over the integers;
 
-* a `rational_roots` function to return the rational roots
+* a `rational_roots` function to return the rational roots;
 
 * a `powermod` function to factor the polynomial over Z/pZ.
 
@@ -23,10 +23,10 @@ The implementation is based on the Cantor-Zassenhaus approach, as
 detailed in Chapters 14 and 15 of the excellent text *Modern Computer Algebra* by von zer
 Gathen and Gerhard.
 
-There are technical limitations for large primes, so for large
-problems, the factoring solutions in `SymPy.jl` or `Nemo.jl` would be
-preferred. In general, if those are installed, they may be preferred,
-but this package requires no additional external libraries.
+
+The factoring solutions in `SymPy.jl` or `Nemo.jl` would be preferred,
+in general, especially for large problems. However, this package
+requires no additional external libraries.
 
 
 Examples:
@@ -57,7 +57,7 @@ Dict{Polynomials.Poly{Int64},Int64} with 2 entries:
 ```  
 
 
-For some problems, big integers are necessary to express the problem:
+For some problems big integers are necessary to express the problem:
 
 ```
 julia> x = variable(BigInt)
@@ -79,7 +79,7 @@ Dict{Polynomials.Poly{BigInt},Int64} with 2 entries:
 
 All factorization is done over `BigInt`, regardless of the type of variable.
 
-Factoring polynomial over the a finite field of coefficient, `Z_p[x]`, with `p` a prime, is also provided by `factormod`:
+Factoring polynomiasl over a finite field of coefficients, `Z_p[x]` with `p` a prime, is also provided by `factormod`:
 
 ```
 julia> factormod(x^4 + 1, 2)

@@ -12,7 +12,7 @@ println("Testing utils.jl")
 @test PolynomialFactors.nextprime(big(400)) == 401
 
 ## EEA
-a, b = 2*3*7, 3*7*9
+a, b = big(2*3*7), big(3*7*9)
 rs, ss, ts = PolynomialFactors.EEA(a, b)
 @test reduce(&, [rs[i] - (ss[i] * a + ts[i] * b) == 0 for i in eachindex(rs)])
 

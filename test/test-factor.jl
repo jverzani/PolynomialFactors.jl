@@ -1,31 +1,6 @@
 using PolynomialFactors
-using Base.Test
-
 using Polynomials
-PF = PolynomialFactors
-
-println("Testing factor, factormod")
-
-## println("Test distinct degree")
-## ## ## distinct degree
-## x = variable(PF.GF{3,1})
-## f = x * (x+1) * (x^2+1) * (x^2 + x + 2)
-## fs = PF.distinct_degree_factorization(f)
-## @test all(sort(fs, by=PF.degree) .== [x^2+x, x^4 + x^3 + x + 2])
-
-## ## ## distinct degree factorization over GF{p,1} (slower)
-## x = variable(PF.GF{3,1})
-## f = x^8 + x^7 - x^6 + x^5 -x^3 - x^2 - x
-## fs = PF.distinct_degree_factorization(f)
-## @test all(sort(fs, by=degree) .== [x, 1+2x+x^3, x^4 + x^3 + x - 1])
-
-
-## ## for p in [3,11,17], d in [1,3,11]
-## ##     x = variable(GF{p, d})
-## ##     f = x^8 + x^7 - x^6 + x^5 -x^3 - x^2 - x
-## ##     fs = PF.distinct_degree_factorization(f)
-## ##     @test prod(fs) - f == zero(x)
-## ## end
+using Base.Test
 
 println("Test factor over Poly{Int}")
 ## test of factoring over Z[x]
@@ -124,11 +99,11 @@ println("Test rational_roots")
 ### Rational roots
 ## Wilkinson
 x = variable(BigInt)
-V = PolynomialFactors.rational_roots(W(20))
+V = rational_roots(W(20))
 @test all(V .== 1:20)
 
 f = (2x-3)^4 * (5x-6)^7
-V = PolynomialFactors.rational_roots(f)
+V = rational_roots(f)
 @test 3//2 in V
 @test 6//5 in V
 
@@ -137,13 +112,16 @@ println("Test factormod")
 x = variable(BigInt)
 
 C10 = x^4 - x^3 + x^2 -x + 1
-U = PolynomialFactors.factormod(C10, 5)
+U = factormod(C10, 5)
 @test U[1+x] == 4
 
 C25 = x^20 + x^15 + x^10 + x^5 + 1
-U = PolynomialFactors.factormod(C25, 5)
+U = factormod(C25, 5)
 @test U[x-1] == 20
 
-U = PolynomialFactors.factormod(x^4 + 1, 5)
+U = factormod(x^4 + 1, 5)
 @test U[x^2 + 2] == 1
 @test U[x^2 - 2] == 1
+
+U = factormod(x^4 + 1, 2)
+@test U[1 + x] == 4
