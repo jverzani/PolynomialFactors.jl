@@ -1,6 +1,6 @@
 The PolynomialFactors.jl package is licensed under the MIT "Expat" License:
 
-> Copyright (c) 2016: jverzani.
+> Copyright (c) 2016: John Verzani.
 >
 > Permission is hereby granted, free of charge, to any person obtaining
 > a copy of this software and associated documentation files (the

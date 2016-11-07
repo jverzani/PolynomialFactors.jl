@@ -48,6 +48,7 @@ Type R has `divrem`, `inv`, `lc` and `normal` defined for it
 Returns rs, ss, ts, ps, qs where
 
 [invariants]
+rs[i] = ss[i] * f[i] + ts[i] * g[i]
 
 """
 function EEA{R}(f::R, g::R)

@@ -1,40 +1,12 @@
 ## Some Polynomial utilities
 
-## ## Conversion
-## function Base.convert{T,S}(::Poly{T}, p::Poly{S})
-##     ps = T[convert(T, u) for u in coeffs(p)]
-##     Poly(ps, p.var)
-## end
-
-
 ## hashing of polynomials so that expected comparisons work.
 ## (We use polys for keys in dictionaries with `factor`)
 Base.hash(f::Poly) = hash((f.a, f.var))
 
 
-## ## Make an iterator over terms of the polynomial
-## Base.start(f::Poly) = degree(f)
-## Base.next(f::Poly, state) = (f[state]*variable(f)^state, state-1)
-## Base.done(f::Poly, state) = state < 0
-
-#Base.eps(::Type{Rational{BigInt}}) = 0
-
-## iszero(x) = abs(x) <= eps(x)
-
-## "Is k an approx zero?"
-## function isazero{T}(p::Poly{T}, k)
-##     thresh = 1e2 * norm(p) * degree(p)^2 * eps(T)
-##     abs(polyval(p,k)) <= thresh
-## end
-
-
-## import Base: //
-## //(x::Float64, y::Float64) = x/y
-
-
-
 "Return  a monic polynomial from `p`. If `p==0` we return `p`"
-monic(p::Poly) = p[end] != 0 ? Poly(p.a * inv(p[degree(p)]), p.var) : p
+monic(p::Poly) = lc(p) != 0 ? Poly(p.a * inv(p[degree(p)]), p.var) : p
 """
 
 Reverse polynomial.
@@ -52,12 +24,12 @@ end
 reverse_coeffs(p::Poly) = reverse(coeffs(p))
 
 
-## """
+"""
 
-## Truncate terms order n or higher. Same as rem(p, x^(n))
+Truncate terms order n or higher. Same as rem(p, x^(n))
 
-## """
-## Base.trunc(p::Poly, n::Int) = (1 <= n <= degree(p)-1) ? Poly(p[0:(n-1)], p.var) : p
+"""
+Base.trunc(p::Poly, n::Int) = (1 <= n <= degree(p)-1) ? Poly(p[0:(n-1)], p.var) : p
 
 
 "`mod(f::Poly, g::Poly)` remainder after division. Resulting poly has 0 <= degree < degree(g)"
@@ -160,85 +132,18 @@ function find_multiplicities(R, f, ps)
 
 end
 
-
-## Special matrices related to polynomial factorization
-function cauchy_matrix{T}(p::Poly{T}, k::Integer)
-    n = degree(p) + 1
-    out = zeros(T, n + k - 1, k)
-    for i in 1:k
-        out[(1:n) + (i-1), i] = reverse_coeffs(p)
-    end
-    out
-end
-
-
-function sylvester_matrix(p::Poly, q::Poly, k::Int=0)
-    @assert k >= 0
-    n,m = degree(p), degree(q)
-    if n < m
-        p,q = q,p
-        n,m = m,n
-    end
-
-    del = n - m
-    i,j = k + del, k
-    if k == 0
-        i,j = n,m
-    end
-    hcat(cauchy_matrix(q, i), cauchy_matrix(p, j))
-end
-
-
-"""
-Sylvester matrix from Gathen Gerhard, p144
-"""
-Syl{R}(f::Poly{R}, g::Poly{R}) = sylvester_matrix(f, g)
-
-"""
-Resultant from Gathen Gerhard, p144 with cases
-"""
-function resultant{R}(f::Poly{R}, g::Poly{R})
-    n,m=degree(f), degree(g)
-    n == m == 0 && return 1
-    g == zero(Poly{R}) && (f == zero(Poly{R}) || n >= 1) && return 0
-    g == zero(Poly{R}) && (n == 1) && return 1
-    f == zero(Poly{R}) && (g == zero(Poly{R}) || m >= 1) && return 0
-    f == zero(Poly{R}) && (m == 1) && return 1
-
-    return det(Syl(f,g))
-end
-
-
-
-## some things we can use `Polynomial` class, for others we need
-## to use `Vector{T}`. Here are some methods, prefaced with `poly_`
-## poly a0 + a1x + ... + an x^n --> [a0, a1,..., an]
-
-## chop off leading 0s or return T[]
-function poly_zchop{T}(x::Vector{T})
-    for i in length(x):-1:1
-        x[i] != zero(T) && return x[1:i]
-    end
-    T[]
-end
-
-# degree, zero = T[] has degree -1, other constants degree 0.
-poly_degree{T}(as::Vector{T}) = length(poly_zchop(as)) - 1
-
-poly_variable{T}(as::Vector{T}) = T[zero(T), one(T)]
-
 ## make monic as poly in Zp
 function poly_monic_over_Zp{T<:Integer}(a::Poly{T}, p)
     b = MOD(p)(a)
-    b[end] == zero(T) && return a
-    bi = invmod(b[end], p)
+    lc(b) == zero(T) && return a
+    bi = invmod(lc(b), p)
     MOD(p)(bi * b)
 end
         
-function poly_primitive{T}(as::Vector{T})
-    g = gcd(as)
-    poly_zchop(T[div(a,g) for a in as])
-end
+## function poly_primitive{T}(as::Vector{T})
+##     g = gcd(as)
+##     poly_zchop(T[div(a,g) for a in as])
+## end
 
 ## a monic, random poly of degree a < n
 function poly_random_poly_over_Zp(T, n, p)
@@ -250,41 +155,6 @@ function poly_random_poly_over_Zp(T, n, p)
 end
 
 
-poly_pad{T}(as::Vector{T}, n::Int) = length(as) >= n ? as : vcat(as, zeros(T,n-length(as)))
-function poly_add{T,S}(as::Vector{T}, bs::Vector{S})
-    m,n = length(as), length(bs)
-    m == n && return as + bs
-    m < n && return poly_pad(as,n) + bs
-    poly_zchop(as + poly_pad(bs, m))
-end
-⊕{T,S}(as::Vector{T}, bs::Vector{S}) = poly_add(as, bs)
-
-## classical multiplication. SHould replace with something faster? (Kurotsaba)
-function poly_mul{T,S}(as::Vector{T}, bs::Vector{S})
-    m,n = length(as), length(bs)
-    cs = zeros(T, m+n-1)
-    for i = 1:m
-        for j = 1:n
-            cs[i+j-1] += as[i] * bs[j]
-        end
-    end
-    poly_zchop(cs)
-end
-⊗{T,S}(as::Vector{T}, bs::Vector{S}) = poly_mul(as,bs)
-    
-    ## XX remove this, for testing only
-    export ⊗, ⊕
-
-function poly_der{T}(f::Vector{T})
-    n = length(f) - 1
-    fp = zeros(T, length(f) - 1)
-    for i in 1:n
-        fp[i] = i*f[i+1]
-    end
-    poly_zchop(fp)
-end
-       
-
 ##################################################
 ## assume  poly in R[x],  R a ring.
 ## algo 2.5
@@ -294,7 +164,7 @@ function poly_div_exact(a::Poly, b::Poly)
     const ONE = one(a)
     n,m = degree(a), degree(b)
     n >= m || return ZERO, a
-    bm = b[end]
+    bm = lc(b)
     bmi = inv(bm)  ## must exist in R for this to work
     r = copy(a)
     x = variable(a)
@@ -341,18 +211,6 @@ function newton_inversion{T}(f::Poly{T}, l::Int)
     g
 end
   
-
-function newton_inversion{T}(f::Vector{T}, l::Int)
-    f = poly_zchop(f)
-    f[1] == one(T) || error("need f(0) to be 1")
-    g = ones(T, 1)
-    r = ceil(Int, log2(l))
-    for i in 1:r
-        g = 2g ⊕ (-f) ⊗ g ⊗ g
-        g = 2^i < length(g) ? g[1:2^i] : g
-    end
-    l < length(g) ? g[1:l] : g
-end
 """
 
 Algorithm 9.5 fast division with remainder
@@ -368,7 +226,7 @@ Does not divide, so a, b in R[x]. Must assume b is monic.
 function fast_divrem{R}(a::Poly{R}, b::Poly{R})
     
     b == zero(Poly{R})  && error("Assume b is neq 0 and monic: $b")
-    b[end] != one(R) && error("Assume b is neq 0 and monic: $b")
+    lc(b) != one(R) && error("Assume b is neq 0 and monic: $b")
     
     degree(a) < degree(b) && return (zero(Poly{R}), as)
     m = degree(a) - degree(b)
@@ -385,41 +243,6 @@ function fast_divrem{R}(a::Poly{R}, b::Poly{R})
 
 end
 
-function fast_divrem{R}(as::Vector{R}, bs::Vector{R})
-    bs = poly_zchop(bs)
-    bs == zeros(R,1)  && error("Assume b is neq 0 and monic: $bs")
-    bs[end] != one(R) && error("Assume b is neq 0 and monic: $bs")
-    
-    length(as) < length(bs) && return (zeros(eltype(as),1), as)
-    m = length(as) - length(bs)
-
-    ra, rb1 = reverse(as), newton_inversion(reverse(bs), m+1)
-    
-    q = (ra ⊗ rb1)[1:(m + 1)]
-    qs = R[q[i] for i in reverse(1:m+1)] # reverse q but may need to pad 0s
-    rs = as ⊕ -(bs ⊗ qs)
-
-    (qs, rs)
-end
-
-# fast divrem over Z/pZ
-function fast_divrem{R,T<:Integer}(as::Vector{R}, bs::Vector{R}, p::T)
-    bs = poly_zchop(bs)
-    bs == zeros(R,1)  && error("Assume b is neq 0 and monic; $bs")
-    bs[end] != one(R) && error("Assume b is neq 0 and monic: $bs")
-    
-    length(as) < length(bs) && return (zeros(eltype(as),1), as)
-    m = length(as) - length(bs)
-
-    ra, rb1 = reverse(as), newton_inversion(reverse(bs), m+1)
-    
-    q = MOD(p)(ra ⊗ rb1)
-    q = q[1:(m + 1)]
-    qs = R[q[i] for i in reverse(1:m+1)] # reverse q but may need to pad 0s
-    rs = MOD(p)(as ⊕ -(bs ⊗ qs))
-
-    (qs, rs)
-end
 
 # fast divrem over Z/pZ
 function fast_divrem{T<:Integer,S<:Integer}(a::Poly{T}, b::Poly{T}, p::S)
@@ -508,6 +331,8 @@ end
 Yun's square free factorization fora field characteristic 0
 
 Algo 14.21
+
+Could use in factoring over Q[x], but don't for now.
 """
 function yun_square_free{R <: Integer}(f::Poly{R})
     u,a,b= bezout(f, f')
@@ -522,26 +347,6 @@ function yun_square_free{R <: Integer}(f::Poly{R})
     hs
 end
 
-"""
-
-Square free
-
-Take f(x) in R[x], return (f1, f2, ..., fk) where each is square free
-
-recursively apply g = gcd(f, f'); (div(f,g), square_free(g)) to get this
-
-
-"""
-function square_free_parts{T}(f::Poly{T})
-    degree(f) <= 1 && return [f]
-
-    f' == zero(Poly{T}) && return[f]
-    
-    g, u, v = bezout(f, f')
-
-    degree(g) == 0 && return [f]
-    return vcat([div(f,g)], square_free(g))
-end
 
 """
 Return square free version of `f`
@@ -560,11 +365,3 @@ function square_free{T<:Integer}(f::Poly{T})
     fsq
 end
  
- ## square free
-function poly_square_free_over_Zp{T}(f::Vector{T}, p::T)
-    g = poly_gcd_over_Zp(f, poly_der(f), p)
-    if poly_degree(g) > 0
-        f = poly_div_over_Zp(f, g, p)
-    end
-    f
-end

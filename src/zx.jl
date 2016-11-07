@@ -1,4 +1,4 @@
-## polynomials over Z[x], Z/nZ[x], GF[x]
+## polynomials over Z[x], Z/nZ[x]
 
 
 ## Some R[x] specific things
@@ -9,19 +9,19 @@ compute rem(a^n, f) using powering in Fq[n] / <f>
 
 T must be a Euclidean Domain for mod to work as desired...
 """
-function Base.powermod{T}(a::Poly{T},p,m::Poly{T})
+function Base.powermod{T}(a::Poly{T}, n, m::Poly{T})
     ## basically powermod in intfuncs.jl with wider type signatures
-    p < 0 && throw(DomainError())
-    p == 0 && return one(T)
+    n < 0 && throw(DomainError())
+    n == 0 && return one(T)
     b = oftype(m,mod(a,m))
     
-    t = prevpow2(p)
+    t = prevpow2(n)
     local r::Poly{T}
     r = one(Poly{T})
     while true
-        if p >= t
+        if n >= t
             r = mod(r * b, m)
-            p -= t
+            n -= t
         end
         t >>>= 1
         t <= 0 && break
@@ -32,8 +32,8 @@ end
 
 ## We will work with Z[x] over Z/pZ by converting the coefficient after the fact
 ## This function coerce coefficients of poly in Z[x] to those in Z/pZ, centered by default
-## functions *_over_Zp will be using this.
-function MOD(p,center=true)
+## functions `poly_*_over_Zp` will be using this.
+function MOD(p, center=true)
     f -> begin
         ps = copy(coeffs(f))
         S = div(p,2)
@@ -47,7 +47,7 @@ function MOD(p,center=true)
 end
         
 
-## a,m are polys in Z[x]. About 10 times faster than above using ModInt{p}
+## a,m are polys in Z[x]. About 10 times faster than power using ModInt{p}
 function poly_powermod_over_Zp{T}(a::Poly{T}, n, m::Poly{T}, p)
     ## basically powermod in intfuncs.jl with wider type signatures
 
@@ -75,94 +75,41 @@ function poly_powermod_over_Zp{T}(a::Poly{T}, n, m::Poly{T}, p)
 end
 
 
-
-
-
-
-## the big prime gcd can only use primes so big. The small prime gcd suffers as too slow
-## if we use ModInt{p,B}, as many things are recompiled for each `p`. Instead we will implement
-## the small prime version usng Int[] and not Poly{ModInt{n,B}}.
-
-## ## divrem() over Z with *monic* poly This should be fast_divrem.
-## function poly_divrem{T<:Integer}(a::Poly{T}, b::Poly{T})
-##     as = coeffs(a); bs = coeffs(b)
-##     rs = copy(as)
-##     n,m = length(rs), length(bs)
-##     n >= m || return as
-##     qs = zeros(T, n-m+1)
-##     bmi = invmod(bs[end], p)
-##     for i in n:-1:m
-##         lambda = mod(rs[i] * bmi, p)
-##         qs[i - m + 1] = lambda
-##         for j in 0:(m-1)
-##             rs[i-j] = mod(rs[i-j] - lambda * bs[m-j], p)
-##         end
-##     end
-
-##     rs = poly_zchop(rs)
-##     length(rs) > 0 ? rs : zeros(T,1)
-
-##     Poly(qs), Poly(rs)
-## end
-
 ## divrem() over Z/pZ
-## rewrite XXX use Poly class, not coefficients directly
 function poly_divrem_over_Zp{T<:Integer}(a::Poly{T}, b::Poly{T}, p::Integer)
     a.var == b.var || error("Symbols must match")
     a,b = MOD(p)(a), MOD(p)(b)
-    
+
     x = variable(a)
     n, m = degree(a), degree(b)
     b == zero(b) && error("Division by zero")
-    m == 0 && return a[end] * invmod(b[end], p) * a, zero(a)
+    m == 0 && return a[end] * invmod(lc(b), p) * a, zero(a)
     n < m && return zero(a), a
 
     q = zero(a)
     a = a - q*b
     while degree(a) >= degree(b)
-        qi = MOD(p)(a[end] * invmod(b[end], p) * x^(degree(a) -degree(b)))
+        qi = MOD(p)(a[end] * invmod(lc(b), p) * x^(degree(a) -degree(b)))
         q += qi
         a = MOD(p)(a - qi * b)
     end
+
+    #vfy = MOD(p)(ao - (b*q + a))
+    
     q, a
 end
 
-## function poly_divrem_over_Zp{T<:Integer}(a::Poly{T}, b::Poly{T}, p::Integer)
-
-##     rs = coeffs(MOD(p)(a))
-##     bs = coeffs(MOD(p)(b))    
-
-##     n,m = length(rs), length(bs)
-##     n < m || return zero(a), a
-##     m == 0 && zero(a), b
-    
-##     qs = zeros(T, n-m+1)
-
-##     bmi = invmod(bs[end], p)
-##     for i in n:-1:m
-##         lambda = mod(rs[i] * bmi, p)
-##         qs[i - m + 1] = lambda
-##         for j in 0:(m-1)
-##             rs[i-j] = mod(rs[i-j] - lambda * bs[m-j], p)
-##         end
-##     end
-
-##     rs = poly_zchop(rs)
-##     length(rs) > 0 ? rs : zeros(T,1)
-
-##     [MOD(p)(u) for u in (Poly(qs), Poly(rs))]
-## end
-
-## rem() over Z/pZ
-poly_rem_over_Zp{T<:Integer}(a::Poly{T}, b::Poly{T}, p::Integer) =  poly_divrem_over_Zp(a,b,p)[2]
-## div() over Z/pZ
+## div() and rem() over Z/pZ
 poly_div_over_Zp{T<:Integer}(a::Poly{T}, b::Poly{T}, p::Integer) =  poly_divrem_over_Zp(a,b,p)[1]
+poly_rem_over_Zp{T<:Integer}(a::Poly{T}, b::Poly{T}, p::Integer) =  poly_divrem_over_Zp(a,b,p)[2]
 
+## should jut be monic?
 function poly_normal_over_Zp{T}(f::Poly{T}, p::T)
     f = MOD(p)(f)
     f == zero(f) && return f
-    MOD(p)(invmod(f[end],p) * f)
+    MOD(p)(invmod(f[end], p) * f)
 end
+
 function poly_EEA_over_Zp{T<:Integer}(f::Poly{T}, g::Poly{T}, p::T)
 #    println("Poly EEA: f=$f; g=$g; p=$p")
     ZERO, ONE = zero(f), one(f)
@@ -197,8 +144,8 @@ function poly_bezout_over_Zp{R<:Integer, S<:Integer}(f::Poly{R}, g::Poly{R}, p::
     ZERO, ONE = zero(f), one(f)
     f, g = [MOD(p)(u) for u in (f,g)]
 
-    f == ZERO && return f, ONE, ZERO
-    g == ZERO && return g, ZERO, ONE
+    f == ZERO && return g, ONE, ZERO
+    g == ZERO && return f, ZERO, ONE
 
     rhos, rs, ss, ts, qs = poly_EEA_over_Zp(f,g,p)
     rs[end], ss[end], ts[end]
@@ -207,16 +154,9 @@ end
 
 ## find gcd(fbar, gbar) where fbar = f mod Z/pZ
 function poly_gcd_over_Zp{T<:Integer, S<:Integer}(a::Poly{T}, b::Poly{T}, p::S)
-    const ZERO=zero(a)
-
-    a == ZERO && return b
-    b == ZERO && return a
-    
     r0, s0, t0 = poly_bezout_over_Zp(a, b, p)
     return poly_monic_over_Zp(r0, p)
 end
-
-## much faster modular gcd
 
 
 """
@@ -245,8 +185,6 @@ function modular_gcd_small_prime{T <: Integer}(p::Poly{T}, q::Poly{T})
     Ss = filter(x -> rem(b,x) != 0, Ss) # p does not divide b
 
     S = convert(Vector{BigInt}, Ss)
-#    fs = convert(Vector{BigInt}, f.a)
-#    gs = convert(Vector{BigInt}, g.a)
     
     vbars = [poly_gcd_over_Zp(f, g, s) for s in S]
     ds  = map(length, vbars)
@@ -269,8 +207,9 @@ function modular_gcd_small_prime{T <: Integer}(p::Poly{T}, q::Poly{T})
         wi > (prodS-1) / 2
         ws[i] = wi > halfway ? wi - prodS : wi
     end
-    
-    Poly(convert(Vector{T}, poly_primitive(ws)), f.var)
+
+    g = Poly(convert(Vector{T},ws), f.var)
+    primitive(g)
 end
 
     
@@ -278,9 +217,7 @@ end
 
 """
 
-Find gcd of `p` and `g` in `Z[x]` using modular arithmetic. This thes big small algorithm  in *Modern Computer Algebra*
-by Joachim von zur Gathen and Jürgen Gerhard. 
-
+Find gcd of `p` and `g` in `Z[x]` using modular arithmetic, in particular the small prime algorithm in GG.
 
 Example:
 
@@ -295,8 +232,9 @@ function Base.gcd{T<:Integer}(p::Poly{T}, q::Poly{T})
         q,p = p,q
         m,n = n,m
     end
-    m == 0 && return gcd(q[end], content(p))
-
+    m == 0 && return gcd(lc(q), content(p))
+    q == zero(q) && return p
+    
     modular_gcd_small_prime(p,q)
 
 end

@@ -1,12 +1,10 @@
-#isdefined(Base, :__precompile__) && __precompile__()
+isdefined(Base, :__precompile__) && __precompile__()
 
 module PolynomialFactors
 
 
 ## TODO
-## tidy code base (Repeted squaring is improved; exact_divrem, not divrem;
-## * remove p \in Int restriction by either using IntModn.jl or rewriting to use (array,p) representation for Z/nZ[x].
-##   This is actually kinda necessary to be competitive time wise with SymPy
+## * engineer around large p issue. 
 ## * LLL could be implemented
 ## * could add real_roots here? But that seems out of place
 
@@ -34,14 +32,14 @@ include("factor.jl")
 
 export factor, rational_roots, factormod
 
-## ## Try to speed up the initial calsl
-## precompile(gcd, (Poly{Int},Poly{Int}))
-## precompile(modular_gcd_small_prime,  (Poly{Int},Poly{Int}))
-## precompile(factor_square_free_zassenhaus, (Poly{Int},))
-## precompile(factor, (Poly{Int},))
-## precompile(factor, (Poly{BigInt},))
-## precompile(factor, (Poly{Rational{Int}},))
-## precompile(factor, (Poly{Rational{BigInt}},))
+## Try to speed up the initial calls
+precompile(gcd, (Poly{BigInt},Poly{BigInt}))
+precompile(modular_gcd_small_prime,  (Poly{BigInt},Poly{BigInt}))
+precompile(factor_square_free_zassenhaus, (Poly{BigInt},))
+precompile(factor, (Poly{Int},))
+precompile(factor, (Poly{BigInt},))
+precompile(factor, (Poly{Rational{Int}},))
+precompile(factor, (Poly{Rational{BigInt}},))
 
 
 end # module

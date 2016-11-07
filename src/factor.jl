@@ -134,7 +134,6 @@ function _poly_fish_out{T}(S::Vector{Poly{T}}, k, p, l, b,B)
     k > length(S) && return fail, Int[]
     
     for cmb in combinations(1:length(S), k)
-#        length(cmb) == length(S) && continue # g would be empty in this case
         gs, hs = _partition_by(S, cmb)
         g = length(gs) > 0 ? MOD(p^l)(b * prod([MOD(p^l)(g) for g in gs])) : one(Poly{T})
         h = length(hs) > 0 ? MOD(p^l)(b * prod([MOD(p^l)(h) for h in hs])) : one(Poly{T})
@@ -188,7 +187,7 @@ output g*,h*,s*,t* in Z/m^2Z[x] with 1) - 4) holding over m^2
 function hensel_step{T}(f::Poly{T}, g::Poly, h::Poly, s::Poly, t::Poly, m)
     ## check conditions
     MOD(m)(f - g*h) == zero(f) || error("need f = gh mod m for inputs")
-    h[end] == 1 || error("need h monic")
+    lc(h) == 1 || error("need h monic")
 
     degree(f) == degree(g) + degree(h)  || error("need deg f = deg g + deg h")
     degree(s) < degree(h) || error("need deg s < deg h")
@@ -281,7 +280,7 @@ function hensel_lift{T}(f, facs, m::T, a0, l)
     
     d = ceil(Int, log2(l))
     for j = 1:d
-        a0 = mod(2*a0 - f[end] * a0^2, m^2^j)
+        a0 = mod(2*a0 - lc(f) * a0^2, m^2^j)
         tau.fg = a0 * f
         hensel_step_update_factor_tree!(tau, m^2^(j-1))
     end
@@ -299,7 +298,7 @@ Factoring using Hensel Lifting, Zassenhaus' algorithm
 """
 function factor_square_free_zassenhaus{T<:Integer}(f::Poly{T})
 
-    if f[end] < 0
+    if lc(f) < 0
         f = -f
     end
 
@@ -311,11 +310,11 @@ function factor_square_free_zassenhaus{T<:Integer}(f::Poly{T})
     n == 1 && return [f]
 
     A = norm(f, Inf)
-    b = f[end]
+    b = lc(f)
     B = sqrt(n+1) * 2.0^n * A * b
     C = (n+1.0)^(2.0 * n) * A^(2.0 * n-1)
     gamma = ceil(BigInt, 2log2(C))
-    M = 2gamma * log(gamma)
+    M = 2 * gamma * log(gamma)
 
     isnan(M) && error("Sorry, we need to get smarter, as primes needed are too big")
 
@@ -414,13 +413,14 @@ factors can be used to determine the factors over
 `Z[x]`.
 
 Factorization over a finite field can be done in different ways
-(Cantor & Zassenhaous, Berlekamp, Kaltofen & Shoup). Figure 14.9 and
+(Cantor & Zassenhaous, Berlekamp, Kaltofen & Shoup, ...). Figure 14.9 and
 the discussion on pages 381-2 in GG illustrate that none is
 optimal. This function does not aim for best possible, which would
 require implementing more algorithms, and follows the easier to
-implement Cantor & Zassenhaus. For technical reasons, the prime `p`
-must be of type `Int`, which limits the size of the polynomials that
-can be factored (the bound includes both the degree and the size of the coefficients).
+implement Cantor & Zassenhaus. Some polynomials can not be factored
+here, e.g., `x^100 -1` as the primes needed get too big due to a bound
+empoloyed.  (the bound includes both the degree and the size of the
+coefficients).
 
 The other part of the factorization task implemented that is not
 optimal is identifying factors from the factorization over `p^l`. The
@@ -448,10 +448,11 @@ end
 Return all rational roots of a polynomial f in Z[x].
 """
 function rational_roots{T<:Integer}(f::Poly{T})
-    fsq = square_free(f)
+    
+    fsq = square_free(convert(Poly{BigInt}, f))
     ps = factor_square_free_zassenhaus(fsq)
     linear_facs = filter(p->degree(p) == 1, ps)
-    sort([-p[0] // p[1] for p in linear_facs])
+    sort(Rational{T}[-p[0] // p[1] for p in linear_facs])
 end
 
 rational_roots{T<:Integer}(f::Poly{Rational{T}}) = rational_roots(Qx_to_Zx(f)[2])
@@ -463,7 +464,11 @@ Factor a polynomial `f` in Z[x] over Z/pZ[x], p a prime (not equal to 2).
 function factormod{T<:Integer,S<:Integer}(f::Poly{T}, p::S)
     g = convert(Poly{BigInt}, f)
     U = poly_factor_over_Zp(g, p)
-    [convert(Poly{T}, v) => k for (v,k) in U]
+    V = Dict{Poly{T}, Int}()
+    for (v,k) in U
+        V[convert(Poly{T}, v)] = k
+    end
+    V
 end
 
 
