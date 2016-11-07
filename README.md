@@ -2,7 +2,12 @@
 
 A package for factoring polynomials over the integers and rationals.
 
-[![Build Status](https://travis-ci.org/jverzani/PolynomialFactors.jl.svg?branch=master)](https://travis-ci.org/jverzani/PolynomialFactors.jl)
+[![PolynomialFactors](http://pkg.julialang.org/badges/PolynomialFactors_0.4.svg)](http://pkg.julialang.org/?pkg=PolynomialFactors&ver=0.4)
+[![PolynomialFactors](http://pkg.julialang.org/badges/PolynomialFactors_0.5.svg)](http://pkg.julialang.org/?pkg=PolynomialFactors&ver=0.5)
+
+Linux: [![Build Status](https://travis-ci.org/jverzani/PolynomialFactors.jl.svg?branch=master)](https://travis-ci.org/jverzani/PolynomialFactors.jl)
+&nbsp;
+Windows: [![Build Status](https://ci.appveyor.com/api/projects/status/github/jverzani/PolynomialFactors.jl?branch=master&svg=true)](https://ci.appveyor.com/project/jverzani/polynomialfactors-jl)
 
 
 
