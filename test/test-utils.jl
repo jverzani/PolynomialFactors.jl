@@ -28,9 +28,9 @@ vs = [2,3,2]
 a = PolynomialFactors.crt(ms, vs)
 @test reduce(&, [mod(a, m) == v for (m,v) in zip(ms,vs)])
 
-a = 12345
-ms = Int[11,  13,  17,  19,  23,  29,  31,  37]
-vs = Int[mod(a, m) for m in ms]
+a = big(12345)
+ms = BigInt[11,  13,  17,  19,  23,  29,  31,  37]
+vs = BigInt[mod(a, m) for m in ms]
 b = PolynomialFactors.crt(ms, vs)
 @test a == b
 
