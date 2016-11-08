@@ -13,9 +13,9 @@ f = (x-1)*(x-2)^2*(x-3)^3
 U = factor(f)
 @test U[x-3] == 3
 
-f = (x-2)*(3x-4)^4*(6x-7)^8
+f = (x-2)*(3x-4)^2*(6x-7)^2
 U = factor(f)
-@test U[6x-7] == 8
+@test U[6x-7] == 2
 
 f = (x^5 - x - 1)
 U = factor(f)
