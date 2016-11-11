@@ -33,31 +33,32 @@ end
 ## We will work with Z[x] over Z/pZ by converting the coefficient after the fact
 ## This function coerce coefficients of poly in Z[x] to those in Z/pZ, centered by default
 ## functions `poly_*_over_Zp` will be using this.
-function MOD(p, center=true)
+function MOD(p::Integer, center=true)
     f -> begin
+        T = eltype(f)
         ps = copy(coeffs(f))
-        S = div(p,2)
+        S = div(p,2)::T
         for i in 0:degree(f) #eachindex(f)
-            a = mod(f[i], p)
+            a = mod(f[i], p)::T
             if (center && a > S) a = a - p end
             ps[i+1] = a
         end
-        Poly(ps)
+        Poly(ps, f.var)
     end
 end
         
 
 ## a,m are polys in Z[x]. About 10 times faster than power using ModInt{p}
-function poly_powermod_over_Zp{T}(a::Poly{T}, n, m::Poly{T}, p)
+function poly_powermod_over_Zp(a::Poly{BigInt}, n::Integer, m::Poly{BigInt}, p::Integer)
     ## basically powermod in intfuncs.jl with wider type signatures
-
-    const ONE = one(a)
-    const ZERO = zero(a)
+    T = BigInt
+    const ONE = one(Poly{T})::Poly{T}
+    const ZERO = zero(Poly{T})::Poly{T}
     
     n < 0 && throw(DomainError())
     n == 0 && return ONE
     b = poly_rem_over_Zp(a, m, p)
-    b == ZERO && return zero(m)
+    b == ZERO && return ZERO
     
     t = prevpow2(n)
     local r::Poly{T}
@@ -76,22 +77,25 @@ end
 
 
 ## divrem() over Z/pZ
-function poly_divrem_over_Zp{T<:Integer}(a::Poly{T}, b::Poly{T}, p::Integer)
-    a.var == b.var || error("Symbols must match")
-    a,b = MOD(p)(a), MOD(p)(b)
+function poly_divrem_over_Zp(a::Poly{BigInt}, b::Poly{BigInt}, p::BigInt)
+    T = BigInt
+    a.var == b.var || throw(DomainError()) #("Symbols must match")
+    a,b = MOD(p)(a)::Poly{T}, MOD(p)(b)::Poly{T}
 
-    x = variable(a)
+    x = Poly(T[zero(T),one(T)], a.var) #variable(Poly{T})
+    
     n, m = degree(a), degree(b)
-    b == zero(b) && error("Division by zero")
+    b == zero(b) && throw(DomainError()) #error("Division by zero")
     m == 0 && return a[end] * invmod(lc(b), p) * a, zero(a)
     n < m && return zero(a), a
 
-    q = zero(a)
+    q = zero(Poly{T})
     a = a - q*b
     while degree(a) >= degree(b)
-        qi = MOD(p)(a[end] * invmod(lc(b), p) * x^(degree(a) -degree(b)))
+        qi = (a[end] * invmod(lc(b), p) * x^(degree(a) - degree(b)))::Poly{T}
+        qi = MOD(p)(qi)::Poly{T}
         q += qi
-        a = MOD(p)(a - qi * b)
+        a = MOD(p)(a - qi * b)::Poly{T}
     end
 
     #vfy = MOD(p)(ao - (b*q + a))
@@ -102,6 +106,8 @@ end
 ## div() and rem() over Z/pZ
 poly_div_over_Zp{T<:Integer}(a::Poly{T}, b::Poly{T}, p::Integer) =  poly_divrem_over_Zp(a,b,p)[1]
 poly_rem_over_Zp{T<:Integer}(a::Poly{T}, b::Poly{T}, p::Integer) =  poly_divrem_over_Zp(a,b,p)[2]
+poly_divides_over_Zp{T}(g::Poly{T}, h::Poly{T}, p::Integer) = poly_rem_over_Zp(g, h, p) == zero(Poly{T})
+
 
 ## should jut be monic?
 function poly_normal_over_Zp{T}(f::Poly{T}, p::T)
@@ -110,11 +116,12 @@ function poly_normal_over_Zp{T}(f::Poly{T}, p::T)
     MOD(p)(invmod(f[end], p) * f)
 end
 
-function poly_EEA_over_Zp{T<:Integer}(f::Poly{T}, g::Poly{T}, p::T)
+function poly_EEA_over_Zp(f::Poly{BigInt}, g::Poly{BigInt}, p::BigInt)
+    T = BigInt
 #    println("Poly EEA: f=$f; g=$g; p=$p")
-    ZERO, ONE = zero(f), one(f)
+    const ZERO, ONE = zero(Poly{T}), one(Poly{T})
 
-    f, g = [MOD(p)(u) for u in (f,g)]
+    f, g = Poly{T}[MOD(p)(u) for u in (f,g)]
     g == ZERO || f == ZERO && error("need f, g nonzero mod p")
     
 
@@ -140,8 +147,9 @@ function poly_EEA_over_Zp{T<:Integer}(f::Poly{T}, g::Poly{T}, p::T)
 end
 
 ## return, g, s,t: g gcd, p*s + q*t = g
-function poly_bezout_over_Zp{R<:Integer, S<:Integer}(f::Poly{R}, g::Poly{R}, p::S)
-    ZERO, ONE = zero(f), one(f)
+function poly_bezout_over_Zp(f::Poly{BigInt}, g::Poly{BigInt}, p::BigInt)
+    T = BigInt
+    const ZERO, ONE = zero(Poly{T}), one(Poly{T})
     f, g = [MOD(p)(u) for u in (f,g)]
 
     f == ZERO && return g, ONE, ZERO

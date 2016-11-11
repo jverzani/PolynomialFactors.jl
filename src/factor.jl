@@ -16,10 +16,11 @@ function poly_factor_over_Zp{R,S}(a::Poly{R}, m::S, d=1)
 
     i= 0
     U = Dict{Poly{T}, Int}()
-    
+
     while true
         i = i + 1
         hi = poly_powermod_over_Zp(hi, p, f, p)
+
         g = poly_gcd_over_Zp(hi -x, v, p)
 
         if degree(g) > 0
@@ -46,11 +47,12 @@ function equal_degree_factorization_over_Zp{T <: Integer}(f::Poly{T}, p::T, d::I
     n == 0 && return fail
     n == 1 && return Poly{T}[f]
     n == d && return Poly{T}[f]
-    g = equal_degree_splitting_over_Zp(f, big(p), d, MAXSTEPS)
+
+    g = equal_degree_splitting_over_Zp(f, p, d, MAXSTEPS)
     degree(g) <= 0 && return fail
 
     g1, g2 = g, poly_div_over_Zp(f, g, p)
-
+    
     out = Poly{T}[]
     for h in (g1, g2)
         if degree(h) == d
@@ -124,45 +126,6 @@ end
 
 ## Split set S into two pieces by index. Like partition from iterators
 _partition_by{T}(S::Vector{T}, inds) = T[S[i] for i in inds], T[S[j] for j in setdiff(1:length(S), inds)]
-
-## This code tries all combinations of the irreducible factors over Z_p^l to see
-## which correspond to irreducible factors over Z. For some polynomials, it
-## will try all factors out, which will not scale well. 
-function _poly_fish_out{T}(S::Vector{Poly{T}}, k, p, l, b,B)
-    fail = zero(Poly{T})
-    
-    k > length(S) && return fail, Int[]
-    
-    for cmb in combinations(1:length(S), k)
-        gs, hs = _partition_by(S, cmb)
-        g = length(gs) > 0 ? MOD(p^l)(b * prod([MOD(p^l)(g) for g in gs])) : one(Poly{T})
-        h = length(hs) > 0 ? MOD(p^l)(b * prod([MOD(p^l)(h) for h in hs])) : one(Poly{T})
-        ## check size
-        norm(g,1) * norm(h,1) <= B && return (primitive(g), cmb)
-    end
-    return fail,Int[]
-end
-
-## There are terms Ts that need piecing together to make factors
-## Here R is a type, 
-function poly_fish_out(tau, p, l, b, B)
-    Ts = all_children(tau)
-    T = typeof(tau.fg)
-    G = T[] 
-    n = length(Ts)
-    ZERO = zero(T)
-    for k = 1:n
-        k > length(Ts) && break
-        fac, inds = _poly_fish_out(Ts, k, p, l, b, B)
-        while fac != ZERO
-            push!(G, fac)
-            Ts = Ts[setdiff(1:length(Ts), inds)]
-            k > length(Ts) && break
-            fac, inds = _poly_fish_out(Ts, k, p, l, b, B)
-        end
-    end
-    G
-end
 
 
 
@@ -288,19 +251,8 @@ function hensel_lift{T}(f, facs, m::T, a0, l)
     tau
 end
 
-
-"""
-
-Algorithm 15.19
-
-Factoring using Hensel Lifting, Zassenhaus' algorithm
-
-"""
-function factor_square_free_zassenhaus{T<:Integer}(f::Poly{T})
-
-    if lc(f) < 0
-        f = -f
-    end
+## compute values and bounds for zassenhaus factoring
+function factor_zassenhaus_variables{T<:Integer}(f::Poly{T})
 
     n = degree(f)
     if n == 0
@@ -327,10 +279,42 @@ function factor_square_free_zassenhaus{T<:Integer}(f::Poly{T})
     l = ceil(T, log(p, 2B+1))
     a0 = invmod(b, p)
 
+    a0, p, l, b, B
+
+end
+"""
+
+Algorithm 15.19
+
+Factoring using Hensel Lifting, Zassenhaus' algorithm
+
+"""
+function factor_square_free_zassenhaus{T<:Integer}(f::Poly{T})
+
+    n = degree(f)
+    n == 1 && return [f]
+    n == 0 && return Poly{T}[]
+    
+    if lc(f) < 0
+        f = -f
+    end
+    
+    a0, p, l, b, B = factor_zassenhaus_variables(f)
+    
     ## three steps of factoring: over p; lifting to p^l; sorting out irreducibles over Z
     facs = poly_factor_over_Zp(a0 * f, p) |> keys |> collect
+    
     tau = hensel_lift(f, facs, p, a0, l)
-    ps = poly_fish_out(tau, p, l, b, B) 
+
+    facs = all_children(tau)
+
+    ## one is exponential, the 5th order. 20 is tunable... both are poor for x^40-1 with 40 factors over Zp
+    if length(facs) > 20
+        ps = identify_factors_lll(f, facs, p, l, b, B)
+    else
+        ps = identify_factors_exhaustive_search(f, facs, p, l, b, B)
+    end
+    ps
     
 end
 
@@ -422,11 +406,14 @@ here, e.g., `x^100 -1` as the primes needed get too big due to a bound
 empoloyed.  (the bound includes both the degree and the size of the
 coefficients).
 
-The other part of the factorization task implemented that is not
-optimal is identifying factors from the factorization over `p^l`. The
-short vector lattice approach of LLL is not used, rather a potentially
-much slower brute force approach is taken (looking at all factor
-combinations).
+The other part of the factorization task is identifying factors from
+the factorization over `p^l`.  Two approaches -- a brute force
+approach of looking at all factor combinations and the use of the LLL
+algorithm are both utilized. The latter for when there are more
+factors over Zp, the former when this number is small. Neither is
+particularly speedy on the x^40-1 which factors into many linear
+factors over Zp for the p found.
+
 
 For faster, more able implementations accessible from within Julia,
 see `SymPy.jl` or `Nemo.jl`, for example.

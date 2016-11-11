@@ -42,7 +42,8 @@ function primitive{T}(p::Poly{T})
     ps = p.a
     b = content(p)
     qs = T[div(a,b) for a in ps]
-    Poly(qs, p.var)
+    q = Poly(qs, p.var)
+    q[end] < 0 ? -q : q
 end
 isprimitive{T}(p::Poly{T}) = cont(p) == one(T)
 
@@ -139,11 +140,6 @@ function poly_monic_over_Zp{T<:Integer}(a::Poly{T}, p)
     bi = invmod(lc(b), p)
     MOD(p)(bi * b)
 end
-        
-## function poly_primitive{T}(as::Vector{T})
-##     g = gcd(as)
-##     poly_zchop(T[div(a,g) for a in as])
-## end
 
 ## a monic, random poly of degree a < n
 function poly_random_poly_over_Zp(T, n, p)

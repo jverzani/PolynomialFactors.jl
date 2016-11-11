@@ -5,7 +5,6 @@ module PolynomialFactors
 
 ## TODO
 ## * engineer around large p issue. 
-## * LLL could be implemented
 ## * could add real_roots here? But that seems out of place
 
 
@@ -23,11 +22,10 @@ else
     import Primes: factor
 end
 
-## using Roots
-##
 include("utils.jl")
 include("polyutils.jl")
 include("zx.jl")
+include("lll.jl")
 include("factor.jl")
 
 export factor, rational_roots, factormod
