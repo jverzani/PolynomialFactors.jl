@@ -26,7 +26,7 @@ Gathen and Gerhard.
 
 The factoring solutions in `SymPy.jl` or `Nemo.jl` would be preferred,
 in general, especially for large problems. However, this package
-requires no additional external libraries.
+requires no additional external libraries. (PRs improving performance are most welcome.)
 
 
 Examples:
@@ -34,6 +34,19 @@ Examples:
 ```
 julia> using Polynomials, PolynomialFactors
 
+julia> p = poly([1,1,3,3,3,3,5,5,5,5,5,5])
+Poly(1265625 - 5737500⋅x + 11306250⋅x^2 - 12877500⋅x^3 + 9505375⋅x^4 - 4818680⋅x^5 + 1728556⋅x^6 - 443800⋅x^7 + 81191⋅x^8 - 10348⋅x^9 + 874⋅x^10 - 44⋅x^11 + x^12)
+
+julia> factor(p)
+Dict{Polynomials.Poly{Int64},Int64} with 3 entries:
+  Poly(-5 + x) => 6
+  Poly(-3 + x) => 4
+  Poly(-1 + x) => 2
+```
+
+
+Or more familiarly, in terms of a variable `x`:
+```
 julia> x = variable(Int)
 Poly(x)
 
@@ -56,6 +69,8 @@ Dict{Polynomials.Poly{Int64},Int64} with 2 entries:
   Poly(-4 + 3⋅x) => 5
 ```  
 
+The factorization returns primitive polynomials. The answer satisfies
+`c * prod([k^v for (k,v) in U] = f` where `c` is not provided.
 
 For some problems big integers are necessary to express the problem:
 
@@ -79,7 +94,7 @@ Dict{Polynomials.Poly{BigInt},Int64} with 2 entries:
 
 All factorization is done over `BigInt`, regardless of the type of variable.
 
-Factoring polynomiasl over a finite field of coefficients, `Z_p[x]` with `p` a prime, is also provided by `factormod`:
+Factoring polynomials over a finite field of coefficients, `Z_p[x]` with `p` a prime, is also provided by `factormod`:
 
 ```
 julia> factormod(x^4 + 1, 2)
