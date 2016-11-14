@@ -3,32 +3,32 @@
 
 ## Some R[x] specific things
 
-"""
+## """
 
-compute rem(a^n, f) using powering in Fq[n] / <f>
+## compute rem(a^n, f) using powering in Fq[n] / <f>
 
-T must be a Euclidean Domain for mod to work as desired...
-"""
-function Base.powermod{T}(a::Poly{T}, n, m::Poly{T})
-    ## basically powermod in intfuncs.jl with wider type signatures
-    n < 0 && throw(DomainError())
-    n == 0 && return one(T)
-    b = oftype(m,mod(a,m))
+## T must be a Euclidean Domain for mod to work as desired...
+## """
+## function Base.powermod{T}(a::Poly{T}, n, m::Poly{T})
+##     ## basically powermod in intfuncs.jl with wider type signatures
+##     n < 0 && throw(DomainError())
+##     n == 0 && return one(T)
+##     b = oftype(m,mod(a,m))
     
-    t = prevpow2(n)
-    local r::Poly{T}
-    r = one(Poly{T})
-    while true
-        if n >= t
-            r = mod(r * b, m)
-            n -= t
-        end
-        t >>>= 1
-        t <= 0 && break
-        r = mod(r*r, m)
-    end
-    r
-end
+##     t = prevpow2(n)
+##     local r::Poly{T}
+##     r = one(Poly{T})
+##     while true
+##         if n >= t
+##             r = mod(r * b, m)
+##             n -= t
+##         end
+##         t >>>= 1
+##         t <= 0 && break
+##         r = mod(r*r, m)
+##     end
+##     r
+## end
 
 ## We will work with Z[x] over Z/pZ by converting the coefficient after the fact
 ## This function coerce coefficients of poly in Z[x] to those in Z/pZ, centered by default
@@ -47,6 +47,16 @@ function MOD(p::Integer, center=true)
     end
 end
         
+
+## a monic, random poly of degree a < n
+function poly_random_poly_over_Zp(T, n, p)
+    a = rand(0:(p-1), n)
+    a = convert(Vector{T}, a)
+    b = Poly(a)
+    b == zero(b) && return poly_random_poly_over_Zp(T, n, p)
+    poly_monic_over_Zp(Poly(b), p)
+end
+
 
 ## a,m are polys in Z[x]. About 10 times faster than power using ModInt{p}
 function poly_powermod_over_Zp(a::Poly{BigInt}, n::Integer, m::Poly{BigInt}, p::Integer)
@@ -211,7 +221,7 @@ function modular_gcd_small_prime{T <: Integer}(p::Poly{T}, q::Poly{T})
     ws = zeros(BigInt, minlength)
     for i in 1:minlength
         vs = BigInt[vbars[j][i-1] for j in 1:N]
-        wi = crt(S, b*vs)
+        wi = chinese_remainder_theorem(S, b*vs)
         wi > (prodS-1) / 2
         ws[i] = wi > halfway ? wi - prodS : wi
     end
@@ -231,10 +241,13 @@ Example:
 
 ```
 p = poly([1,1,2,3,4,4,4,4,4])
-gcd(p, p')  # (x-1)*(x-4)^4
+egcd(p, p')  # (x-1)*(x-4)^4
 ```
+
+Note: We call this `egcd`, not `gcd`, as the `gcd` function in `Polynomials` is defined for polynomials over `Z[x]`, but is not *e*xact.
+
 """
-function Base.gcd{T<:Integer}(p::Poly{T}, q::Poly{T})
+function egcd{T<:Integer}(p::Poly{T}, q::Poly{T})
     n,m = degree(p), degree(q)
     if n < m
         q,p = p,q

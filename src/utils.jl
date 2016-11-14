@@ -21,15 +21,6 @@ function nextprime(y::BigInt)
     x
 end
 
-## list factors on n (https://rosettacode.org/wiki/Factors_of_an_integer#Julia)
-function factors(n::Integer)
-    f = [one(n)]
-    for (p,e) in factor(n)
-        f = reduce(vcat, f, [f*p^j for j in 1:e])
-    end
-    return length(f) == 1 ? [one(n), n] : sort!(f)
-end
-
 #### Some number theory things ##################################################
 
 ## Extended Euclidean Algorithm
@@ -111,7 +102,7 @@ input: m1, ..., mr in R pairwise co prime
 output v in R where for each i: v = vi mod mi
 
 """
-function crt{R}(ms::Vector{R}, vs::Vector{R})
+function chinese_remainder_theorem{R}(ms::Vector{R}, vs::Vector{R})
     tot = zero(eltype(ms))
     M = prod(ms)
     N = length(ms)

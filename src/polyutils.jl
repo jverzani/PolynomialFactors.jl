@@ -2,11 +2,9 @@
 
 ## hashing of polynomials so that expected comparisons work.
 ## (We use polys for keys in dictionaries with `factor`)
+## XXX remove as soon as merged into Polynomials.
 Base.hash(f::Poly) = hash((f.a, f.var))
 
-
-"Return  a monic polynomial from `p`. If `p==0` we return `p`"
-monic(p::Poly) = lc(p) != 0 ? Poly(p.a * inv(p[degree(p)]), p.var) : p
 """
 
 Reverse polynomial.
@@ -16,24 +14,36 @@ E.g. `1 + 2x + 3x^2 -> 3 + 2x + 1x^2`.
 Can set `k` so that we reverse poly `3 + 2x + 1x^2 + 0x^3 -> 0 + 1x +2x^2 + 3x^3`
 
 """
-function Base.reverse{T}(p::Poly{T}, k=degree(p))
+function poly_reverse{T}(p::Poly{T}, k=degree(p))
     k < degree(p) && error("k must be >= degree(p)")
     ps = T[p[i] for i in k:-1:0]
     Poly(ps, p.var)
 end
-reverse_coeffs(p::Poly) = reverse(coeffs(p))
+
+## """
+
+## Truncate terms order n or higher. Same as rem(p, x^(n))
+
+## """
+## Base.trunc(p::Poly, n::Int) = (1 <= n <= degree(p)-1) ? Poly(p[0:(n-1)], p.var) : p
 
 
-"""
-
-Truncate terms order n or higher. Same as rem(p, x^(n))
-
-"""
-Base.trunc(p::Poly, n::Int) = (1 <= n <= degree(p)-1) ? Poly(p[0:(n-1)], p.var) : p
+#"`mod(f::Poly, g::Poly)` remainder after division. Resulting poly has 0 <= degree < degree(g)"
+#Base.mod(f::Poly, g::Poly) = rem(f, g)
 
 
-"`mod(f::Poly, g::Poly)` remainder after division. Resulting poly has 0 <= degree < degree(g)"
-Base.mod(f::Poly, g::Poly) = rem(f, g)
+"Return  a monic polynomial from `p`. If `p==0` we return `p`"
+monic(p::Poly) = lc(p) != 0 ? Poly(p.a * inv(p[degree(p)]), p.var) : p
+
+## make monic as poly in Zp
+function poly_monic_over_Zp{T<:Integer}(a::Poly{T}, p)
+    b = MOD(p)(a)
+    lc(b) == zero(T) && return a
+    bi = invmod(lc(b), p)
+    MOD(p)(bi * b)
+end
+
+
 
 # content in poly ring R[u][v] is monic(gcd(...))
 content{T}(p::Poly{T}) = convert(T, gcd(p.a))
@@ -59,7 +69,7 @@ normal{T}(a::Poly{T}) = lc(a) != 0 ?  a * inv(lc(a)) : a
 
 
 
-function Base.divrem(p::Poly, c::Number)
+function synthetic_division(p::Poly, c::Number)
     ps = copy(p.a)                    # [p0, p1, ..., pn]
     qs = eltype(p)[pop!(ps)]           # take from right
     while length(ps) > 0
@@ -77,10 +87,10 @@ If p(x) = (x-c)^k q(x) then return q(x), k (assuming x-c does not divide q(x))
 """
 function deflate{T}(p::Poly{T}, c::T)
     k = 0
-    q, r = divrem(p,c)
+    q, r = synthetic_division(p,c)
     while abs(r) <=eps(T)
         p = q
-        q,r = divrem(p, c)
+        q,r = synthetic_division(p, c)
         k = k + 1
     end
     p, k
@@ -94,11 +104,11 @@ If `p(x) = f(x)^k * q(x) ` with `f` not dividing `q`, then return `(f, k)`.
 function deflate{T,S}(p::Poly{T}, fac::Poly{S})
     k = 0
     fact = convert(Poly{T}, fac)
-    q,r = divrem(p,fact)
+    q,r = exact_divrem(p, fact)
     while r == zero(Poly{T})
-        q == zero(Poly{T}) && break  # divrem(Z[x],Z[x]) returns 0,0 if can't divide
+        q == zero(Poly{T}) && break  # exact_divrem(Z[x],Z[x]) returns 0,0 if can't divide
         p = q
-        q,r = divrem(p, fact)
+        q,r = exact_divrem(p, fact)
         k = k + 1
     end
     p, k
@@ -133,48 +143,31 @@ function find_multiplicities(R, f, ps)
 
 end
 
-## make monic as poly in Zp
-function poly_monic_over_Zp{T<:Integer}(a::Poly{T}, p)
-    b = MOD(p)(a)
-    lc(b) == zero(T) && return a
-    bi = invmod(lc(b), p)
-    MOD(p)(bi * b)
-end
 
-## a monic, random poly of degree a < n
-function poly_random_poly_over_Zp(T, n, p)
-    a = rand(0:(p-1), n)
-    a = convert(Vector{T}, a)
-    b = Poly(a)
-    b == zero(b) && return poly_random_poly_over_Zp(T, n, p)
-    poly_monic_over_Zp(Poly(b), p)
-end
-
-
-##################################################
-## assume  poly in R[x],  R a ring.
-## algo 2.5
-## try to speed up compilation for different types
-function poly_div_exact(a::Poly, b::Poly)
-    const ZERO = zero(a)
-    const ONE = one(a)
-    n,m = degree(a), degree(b)
-    n >= m || return ZERO, a
-    bm = lc(b)
-    bmi = inv(bm)  ## must exist in R for this to work
-    r = copy(a)
-    x = variable(a)
-    qs = zeros(eltype(a), n - m + 1)
+## ##################################################
+## ## assume  poly in R[x],  R a ring.
+## ## algo 2.5
+## ## try to speed up compilation for different types
+## function poly_div_exact(a::Poly, b::Poly)
+##     const ZERO = zero(a)
+##     const ONE = one(a)
+##     n,m = degree(a), degree(b)
+##     n >= m || return ZERO, a
+##     bm = lc(b)
+##     bmi = inv(bm)  ## must exist in R for this to work
+##     r = copy(a)
+##     x = variable(a)
+##     qs = zeros(eltype(a), n - m + 1)
     
-    for i in (n-m):-1:0
-        if degree(r) == m + i
-            qi = lc(r) * bmi
-            r = r - qi * x^i * b
-            qs[i+1] = qi
-        end
-    end
-    return Poly(qs, a.var)
-end
+##     for i in (n-m):-1:0
+##         if degree(r) == m + i
+##             qi = lc(r) * bmi
+##             r = r - qi * x^i * b
+##             qs[i+1] = qi
+##         end
+##     end
+##     return Poly(qs, a.var)
+## end
     
 
 ## Polynomial gcd, ...
@@ -219,27 +212,6 @@ Does not divide, so a, b in R[x]. Must assume b is monic.
 """
 
 
-function fast_divrem{R}(a::Poly{R}, b::Poly{R})
-    
-    b == zero(Poly{R})  && error("Assume b is neq 0 and monic: $b")
-    lc(b) != one(R) && error("Assume b is neq 0 and monic: $b")
-    
-    degree(a) < degree(b) && return (zero(Poly{R}), as)
-    m = degree(a) - degree(b)
-
-    ra, rb1 = reverse(a), newton_inversion(reverse(b), m+1)
-
-    qstar = ra * rb1
-    qstar = Poly(qstar[0:(m+1)])
-    
-    q = Poly(R[qstar[i-1] for i in reverse(1:m+1)]) # reverse q but may need to pad 0s
-    r = a - b * q
-
-    (q, r)
-
-end
-
-
 # fast divrem over Z/pZ
 function fast_divrem{T<:Integer,S<:Integer}(a::Poly{T}, b::Poly{T}, p::S)
     
@@ -249,7 +221,7 @@ function fast_divrem{T<:Integer,S<:Integer}(a::Poly{T}, b::Poly{T}, p::S)
     degree(a) < degree(b)  && return (zero(a), a)
     m = degree(a) - degree(b)
 
-    ra, rb1 = reverse(a), newton_inversion(reverse(b), m+1)
+    ra, rb1 = poly_reverse(a), newton_inversion(poly_reverse(b), m+1)
     
     q = MOD(p)(ra * rb1)
     q = Poly(reverse(q[0:m]), a.var)
@@ -258,32 +230,55 @@ function fast_divrem{T<:Integer,S<:Integer}(a::Poly{T}, b::Poly{T}, p::S)
     (q, r)
 end
 
-"""
-pseudo division with remainder over Z[x]. Does not assume b is monic
 
-Find q, r in Z[x] with lc(b)^(m-n + 1) * a = q * b + r
 
-(Z[x] is not a Euclidean domain, so divrem does not exist within Z[x])
-"""
-function pdivrem{T<:Integer}(a::Poly{T}, b::Poly{T})
+
+## function fast_divrem{R}(a::Poly{R}, b::Poly{R})
     
-    m, n = degree(a), degree(b)
-    m < n && error("degree(a) >= degree(b)")
-
-    c = b[end]
-    c == 1 && return(fast_divrem(a, b))
+##     b == zero(Poly{R})  && error("Assume b is neq 0 and monic: $b")
+##     lc(b) != one(R) && error("Assume b is neq 0 and monic: $b")
     
-    x = variable(a)
-    q = 0
-    r = a * c^(m - n + 1)
-    while degree(r) >= n
-        s = div(r[end], c)  * x^(degree(r) - n )
-        q = q + s
-        r = r - s*b
-    end
+##     degree(a) < degree(b) && return (zero(Poly{R}), as)
+##     m = degree(a) - degree(b)
 
-    q, r
-end
+##     ra, rb1 = poly_reverse(a), newton_inversion(poly_reverse(b), m+1)
+
+##     qstar = ra * rb1
+##     qstar = Poly(qstar[0:(m+1)])
+    
+##     q = Poly(R[qstar[i-1] for i in reverse(1:m+1)]) # reverse q but may need to pad 0s
+##     r = a - b * q
+
+##     (q, r)
+
+## end
+
+## """
+## pseudo division with remainder over Z[x]. Does not assume b is monic
+
+## Find q, r in Z[x] with lc(b)^(m-n + 1) * a = q * b + r
+
+## (Z[x] is not a Euclidean domain, so divrem does not exist within Z[x])
+## """
+## function pdivrem{T<:Integer}(a::Poly{T}, b::Poly{T})
+    
+##     m, n = degree(a), degree(b)
+##     m < n && error("degree(a) >= degree(b)")
+
+##     c = b[end]
+##     c == 1 && return(fast_divrem(a, b))
+    
+##     x = variable(a)
+##     q = 0
+##     r = a * c^(m - n + 1)
+##     while degree(r) >= n
+##         s = div(r[end], c)  * x^(degree(r) - n )
+##         q = q + s
+##         r = r - s*b
+##     end
+
+##     q, r
+## end
 
 
 """
@@ -313,35 +308,35 @@ function exact_divrem{T<:Integer}(a::Poly{T}, b::Poly{T})
 end
     
     
-"""
-Is `g` square free? Assumes you can tell by comparing gcd(g, g')
-"""
-function issquarefree(g::Poly)
-    u =  gcd(g,g')
-    degree(u) == 0
-end
+## """
+## Is `g` square free? Assumes you can tell by comparing gcd(g, g')
+## """
+## function issquarefree(g::Poly)
+##     u =  egcd(g,g')
+##     degree(u) == 0
+## end
 
 
-"""
+## """
 
-Yun's square free factorization fora field characteristic 0
+## Yun's square free factorization fora field characteristic 0
 
-Algo 14.21
+## Algo 14.21
 
-Could use in factoring over Q[x], but don't for now.
-"""
-function yun_square_free{R <: Integer}(f::Poly{R})
-    u,a,b= bezout(f, f')
-    v,w  = div(f,a), div(f',b)
-    hs = Poly{T}[]
-    while true
-        h,a,b = bezout(v, w - v')
-        v, w = div(v, a), div(w - v', b)
-        push!(hs, h)
-        degree(v) == 0 && break
-    end
-    hs
-end
+## Could use in factoring over Q[x], but don't for now.
+## """
+## function yun_square_free{T <: Integer}(f::Poly{Rational{T}})
+##     u = gcd(f, f')
+##     v,w  = div(f,u), div(f',u)
+##     hs = Poly{Rational{T}}[]
+##     while true
+##         u = gcd(v, w - v')
+##         v, w = div(v, u), div(w - v', u)
+##         push!(hs, h)
+##         degree(v) == 0 && break
+##     end
+##     hs
+## end
 
 
 """
@@ -350,7 +345,7 @@ Return square free version of `f`
 function square_free{T<:Integer}(f::Poly{T})
     degree(f) <= 1 && return f
     
-    g = gcd(f, f')  # monic
+    g = egcd(f, f')  # monic
     d = degree(g) 
     
     if  d > 0
