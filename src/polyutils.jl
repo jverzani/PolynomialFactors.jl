@@ -1,9 +1,5 @@
 ## Some Polynomial utilities
 
-## hashing of polynomials so that expected comparisons work.
-## (We use polys for keys in dictionaries with `factor`)
-## XXX remove as soon as merged into Polynomials.
-Base.hash(f::Poly) = hash((f.a, f.var))
 
 """
 
@@ -40,7 +36,7 @@ function poly_monic_over_Zp{T<:Integer}(a::Poly{T}, p)
     b = MOD(p)(a)
     lc(b) == zero(T) && return a
     bi = invmod(lc(b), p)
-    MOD(p)(bi * b)
+    MOD(p)(bi * b)::Poly{T}
 end
 
 
@@ -68,7 +64,9 @@ normal form of a. Basically same as monic, but may be more general for Euclidean
 normal{T}(a::Poly{T}) = lc(a) != 0 ?  a * inv(lc(a)) : a
 
 
-
+"""
+exact divrem for linear factors
+"""
 function synthetic_division(p::Poly, c::Number)
     ps = copy(p.a)                    # [p0, p1, ..., pn]
     qs = eltype(p)[pop!(ps)]           # take from right
@@ -138,7 +136,7 @@ function find_multiplicities(R, f, ps)
         f, k = deflate(f, p)
         G1[p] = k
     end
-
+    G1[f] = 1 # constant?
     G1
 
 end
@@ -171,9 +169,6 @@ end
     
 
 ## Polynomial gcd, ...
-
-### Extended Euclidean Algorithm needs these defined for polys:
-### With these defined, `bezout` will work over R[x], R a Euclidean Domain -- not Z[x], though
 
 ## Algorithms for Z[x]
 
@@ -210,10 +205,7 @@ a = q * b + r with deg(r) < deg(b)
 
 Does not divide, so a, b in R[x]. Must assume b is monic.
 """
-
-
-# fast divrem over Z/pZ
-function fast_divrem{T<:Integer,S<:Integer}(a::Poly{T}, b::Poly{T}, p::S)
+function poly_fast_divrem_over_Zp{T<:Integer,S<:Integer}(a::Poly{T}, b::Poly{T}, p::S)
     
     b == zero(Poly{T})  && error("Assume b is neq 0 and monic; $b")
     b[end] != one(T) && error("Assume b is neq 0 and monic: $b")
@@ -356,3 +348,35 @@ function square_free{T<:Integer}(f::Poly{T})
     fsq
 end
  
+## bounds
+function _bi2up{T}(as::Vector{T}, k, n)
+    a = one(T)
+    tot = as[1]^2 * a
+    for i in 1:k
+        a = a * i / (n-i + 1)
+        tot += as[i+1]^2 * a
+    end
+    tot
+end
+
+## [f]2 norm = sqrt(sum(a[i]^2/choose(n,i))) 
+function bi2norm{T}(as::Vector{T})
+    n = length(as) - 1
+    k = div(n,2)
+    out = _bi2up(as[1:(k+1)], k, n) + _bi2up(reverse(as[(k+2):end]), n-k-1, n)
+    sqrt(out)
+end
+
+# http://icm.mcs.kent.edu/reports/1992/ICM-9201-26.pdf
+function beauzamy_bound{T}(p::Poly{T})
+     n = degree(p)
+     3.0^(3/4) / 2 / sqrt(pi) * sqrt(3)^n / sqrt(n) * bi2norm(p.a)
+end
+
+
+function landau_mignotte{T}(p::Poly{T})
+    d = floor(BigInt, degree(p)/2)
+    k = floor(BigInt, d/2)
+    a = binomial(d,k)
+    (d/2) * norm(p, 2)
+end

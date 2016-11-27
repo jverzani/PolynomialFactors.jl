@@ -4,8 +4,8 @@ module PolynomialFactors
 
 
 ## TODO
-## * engineer around large p issue. 
-## * could add real_roots here? But that seems out of place
+## * performance is really poor for larger degrees.
+
 
 
 

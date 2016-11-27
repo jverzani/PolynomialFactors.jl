@@ -12,10 +12,12 @@ U = factor(f)
 f = (x-1)*(x-2)^2*(x-3)^3
 U = factor(f)
 @test U[x-3] == 3
+@test f - prod([k^v for (k,v) in U]) == zero(f)
 
 f = (x-2)*(3x-4)^2*(6x-7)^2
 U = factor(f)
 @test U[6x-7] == 2
+
 
 f = (x^5 - x - 1)
 U = factor(f)
@@ -43,11 +45,11 @@ U = factor(f)
 
 
 p = x^15 - 1
-@test length(factor(p)) == 4
+@test length(factor(p)) == 4 + 1
 
 p = 1 + x^3 + x^6 + x^9 + x^12
-@test length(factor(p)) == 2
-
+@test length(factor(p)) == 2 + 1
+@test p - prod([k^v for (k,v) in factor(p)]) == zero(p)
 
 ## Wilkinson (good out to 50 or so, then issues)
 W(n) = prod([x-i for i in 1:20])
@@ -90,10 +92,10 @@ U = factor(C25)
 println("Test factor over Poly{Rational{BigInt}}")
 ## Rational
 x = variable(Rational{Int})
-f = (x - 1//2)^3 * (x-3//4)^4
+f = -17 * (x - 1//2)^3 * (x-3//4)^4
 U = factor(f)
 @test U[-1 + 2x] == 3
-
+@test f - prod([k^v for (k,v) in factor(f)]) == zero(f)
 
 println("Test rational_roots")
 ### Rational roots
@@ -125,3 +127,9 @@ U = factormod(x^4 + 1, 5)
 
 U = factormod(x^4 + 1, 2)
 @test U[1 + x] == 4
+
+p = 5x^5 - x^4 - 1
+U = factormod(p, 7)
+v =  prod([k^v for (k,v) in U]) - p
+## v is not zero, v mod p should be:
+@test Poly(BigInt[mod(l,7) for l in v.a]) == zero(Poly{BigInt})

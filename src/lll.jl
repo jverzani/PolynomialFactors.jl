@@ -6,9 +6,13 @@ mu(i,j,B,Bs) = vecdot(B[i,:], Bs[j,:]) // vecdot( Bs[j,:], Bs[j,:] )
 
 ##
 function reduce_BU!{T}(i, B::Matrix{T}, U)
+    m,n = size(B)
     for j=(i-1):-1:1
-        B[i,:] -=  round(T, U[i,j]) * B[j,:]
-        U[i,:] -=  round(T, U[i,j]) * U[j,:]
+        r = round(T, U[i,j])
+        for k in 1:n
+            B[i,k] -=  r * B[j,k]
+            U[i,k] -=  r * U[j,k]
+        end
     end
 end
 
@@ -23,17 +27,17 @@ The one in GG is a bit less efficient.
 
 B is a matrix of row vectors
 
-Returns a nearly orthogonal matrix of row vectors spannng the same integer lattice as B.
+Modifies B to be a nearly orthogonal matrix of row vectors spannng the same integer lattice as the original B.
 """
-function LLLBR{T}(B::Matrix{T}, c=2)
+function LLLBR!{T}(B::Matrix{T}, c=2)
     m,n = size(B)
     m == n || throw(DomainError())
     
-    const ONE, ZERO = one(Rational{T}), zero(Rational{T})
+    const ONE::Rational{T}, ZERO::Rational{T} = one(Rational{T}), zero(Rational{T})
 
     ## initialize
-    U = zeros(Rational{T}, m,m)
-    Bs = zeros(Rational{T}, m,m)
+    U  = zeros(Rational{T}, m, m)
+    Bs = zeros(Rational{T}, m, m)
 
     for i in 1:m
         U[i,i] = ONE
@@ -46,7 +50,9 @@ function LLLBR{T}(B::Matrix{T}, c=2)
     end
     
     i = 1
+    ctr = 0
     while i < m
+        ctr += 1
         if vecnorm(Bs[i,:], 2)^2 <= c * vecnorm(Bs[i+1,:], 2)^2
             i += 1
         else
@@ -55,20 +61,20 @@ function LLLBR{T}(B::Matrix{T}, c=2)
             U[i:(i+1),i:(i+1)] = [mu(i,i+1, B, Bs) ONE; ONE ZERO]
             Bs[i,:] -=  U[i,i] * Bs[i+1,:]
 
-            swaprows!(U,i, i+1)
-            swaprows!(B, i, i+1)
+            swaprows!(U,  i, i+1)
+            swaprows!(B,  i, i+1)
             swaprows!(Bs, i, i+1)
 
             for k = (i+2):m
                 U[k,i]   = mu(k,i, B, Bs) 
-                U[k,i+1] =  mu(k, i+1, B, Bs) 
+                U[k,i+1] = mu(k, i+1, B, Bs) 
             end
 
             abs(U[i+1,i]) > 1/2 && reduce_BU!(i+1, B, U)
             i = max(i-1, 1)
         end
     end
-    B#,U,Bs
+#    println("LLBR took $ctr steps")
 end
 
 
@@ -83,14 +89,15 @@ function short_vector{T}(u::Poly{T}, m, j, d)
     for i in 0:(d-1)
         F[1 + j - d + i,1 + i] = m
     end
-    G = LLLBR(F)::Matrix{T}
-    gstar = Poly(vec(G[1,:]), u.var)
+    LLLBR!(F)
+    gstar = Poly(vec(F[1,:]), u.var)
 end
 
 ## u is a factor over Zp
 ## we identify irreducible gstar of f
 ## return gstar, fstar = f / gstar (basically), and reduced Ts
-function identify_factor(u, fstar, Ts, p, l, b, B)
+function identify_factor{T}(u::Poly{T}, fstar::Poly{T}, Ts::Vector{Poly{T}}, p::T, l::T, b, B)
+    
     d, nstar = degree(u), degree(fstar)
     d < nstar || throw(DomainError())
     m = p^l
@@ -98,14 +105,13 @@ function identify_factor(u, fstar, Ts, p, l, b, B)
     gstar = u
     while j <= nstar+1
         gstar = short_vector(u,m,j,d)
-
-        inds = filter(i -> poly_divides_over_Zp(gstar, Ts[i],  p), eachindex(Ts))
-        Ss = length(inds) > 0 ? Ts[setdiff(1:length(Ts), inds)] : Ts
+        inds::Vector{Int} = filter(i -> poly_divides_over_Zp(gstar, Ts[i],  p)::Bool, eachindex(Ts))
+        Ss::Vector{Poly{T}} = length(inds) > 0 ? Ts[setdiff(1:length(Ts), inds)] : Ts
 
         # find hstar = prod(Ts)
-        hstar = mod(b, m) * one(eltype(Ts))
+        hstar = mod(b, m) * one(Poly{T})
         for s in Ss
-            hstar = MOD(m)(hstar * s)
+            hstar = MOD(m)(hstar * s)::Poly{T}
         end
 
         pd = norm(primitive(gstar),1) * norm(primitive(hstar), 1)
@@ -156,7 +162,7 @@ end
 ## which correspond to irreducible factors over Z. For some polynomials, it
 ## will try all factors out, which will not scale well. 
 function _poly_fish_out{T}(S::Vector{Poly{T}}, k, p, l, b,B)
-    
+#    println("poly fish out: B=$B, $S")
     fail = zero(Poly{T})
     
     k > length(S) && return fail, Int[]

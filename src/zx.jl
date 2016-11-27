@@ -37,7 +37,7 @@ function MOD(p::Integer, center=true)
     f -> begin
         T = eltype(f)
         ps = copy(coeffs(f))
-        S = div(p,2)::T
+        S = div(p,2)
         for i in 0:degree(f) #eachindex(f)
             a = mod(f[i], p)::T
             if (center && a > S) a = a - p end
@@ -59,7 +59,7 @@ end
 
 
 ## a,m are polys in Z[x]. About 10 times faster than power using ModInt{p}
-function poly_powermod_over_Zp(a::Poly{BigInt}, n::Integer, m::Poly{BigInt}, p::Integer)
+function poly_powermod_over_Zp{S<:Integer}(a::Poly{BigInt}, n::S, m::Poly{BigInt}, p::Integer)
     ## basically powermod in intfuncs.jl with wider type signatures
     T = BigInt
     const ONE = one(Poly{T})::Poly{T}
@@ -70,7 +70,7 @@ function poly_powermod_over_Zp(a::Poly{BigInt}, n::Integer, m::Poly{BigInt}, p::
     b = poly_rem_over_Zp(a, m, p)
     b == ZERO && return ZERO
     
-    t = prevpow2(n)
+    t = prevpow2(n)::S
     local r::Poly{T}
     r = one(a)
     while true
@@ -126,20 +126,20 @@ function poly_normal_over_Zp{T}(f::Poly{T}, p::T)
     MOD(p)(invmod(f[end], p) * f)
 end
 
-function poly_EEA_over_Zp(f::Poly{BigInt}, g::Poly{BigInt}, p::BigInt)
-    T = BigInt
+function poly_EEA_over_Zp{T}(f::Poly{T}, g::Poly{T}, p::T)
+
 #    println("Poly EEA: f=$f; g=$g; p=$p")
-    const ZERO, ONE = zero(Poly{T}), one(Poly{T})
+    const ZERO::Poly{T}, ONE::Poly{T} = zero(Poly{T}), one(Poly{T})
 
     f, g = Poly{T}[MOD(p)(u) for u in (f,g)]
-    g == ZERO || f == ZERO && error("need f, g nonzero mod p")
+    (g == ZERO || f == ZERO) && error("need f, g nonzero mod p")
     
 
     rhos = T[f[end], g[end]]
     qs = Poly{T}[]
-    rs = [poly_normal_over_Zp(f, p), poly_normal_over_Zp(g, p)]
-    ss = [invmod(f[end], p)*ONE, ZERO]
-    ts = [ZERO, invmod(g[end], p)*ONE]
+    rs = Poly{T}[poly_normal_over_Zp(f, p), poly_normal_over_Zp(g, p)]
+    ss = Poly{T}[invmod(f[end], p)*ONE, ZERO]
+    ts = Poly{T}[ZERO, invmod(g[end], p)*ONE]
 
     i = 2
     while rs[i] != ZERO
@@ -157,10 +157,10 @@ function poly_EEA_over_Zp(f::Poly{BigInt}, g::Poly{BigInt}, p::BigInt)
 end
 
 ## return, g, s,t: g gcd, p*s + q*t = g
-function poly_bezout_over_Zp(f::Poly{BigInt}, g::Poly{BigInt}, p::BigInt)
-    T = BigInt
-    const ZERO, ONE = zero(Poly{T}), one(Poly{T})
-    f, g = [MOD(p)(u) for u in (f,g)]
+function poly_bezout_over_Zp{T}(f::Poly{T}, g::Poly{T}, p::T)
+    
+    const ZERO::Poly{T}, ONE::Poly{T} = zero(Poly{T}), one(Poly{T})
+    f, g = Poly{T}[MOD(p)(u) for u in (f,g)]
 
     f == ZERO && return g, ONE, ZERO
     g == ZERO && return f, ZERO, ONE

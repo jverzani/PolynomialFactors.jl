@@ -2,9 +2,14 @@
 ## Factoring over Fq[x], Z[x], Q[x]
 ## Following chapters 14 and 15 of Modern Computer Algebra by von zer Gathen and Gerhard
 ## TODO:
-## * There was a paper on making bounds smaller andpicking off one factor, deflating anad repeating.
-##   this might make larger ones possible. As right now, limited: can't do x^100 -1 primes to big
+
+## * There was a paper on making bounds smaller and picking off one
+##   factor, deflating anad
+##   repeating. (http://icm.mcs.kent.edu/reports/1992/ICM-9201-26.pdf)
+##   this might make larger ones possible. As right now, limited:
+##   can't do x^100 -1 primes to big
 ## * LLL -- large n are really poor -- can't do x^60 - 1 too many combinations
+## * ideas here http://www.math.fsu.edu/~hoeij/papers/issac10/A.pdf can be implemented
 
 ## Algorithm 14.13
 function poly_factor_over_Zp{R,S}(a::Poly{R}, m::S, d=1)
@@ -34,7 +39,6 @@ function poly_factor_over_Zp{R,S}(a::Poly{R}, m::S, d=1)
 
         degree(v) <= 0 && break
     end
-
     U
 end
 
@@ -48,7 +52,7 @@ function equal_degree_factorization_over_Zp{T <: Integer}(f::Poly{T}, p::T, d::I
     n == 1 && return Poly{T}[f]
     n == d && return Poly{T}[f]
 
-    g = equal_degree_splitting_over_Zp(f, p, d, MAXSTEPS)
+    g = equal_degree_splitting_over_Zp(f, p, d, MAXSTEPS)::Poly{T}
     degree(g) <= 0 && return fail
 
     g1, g2 = g, poly_div_over_Zp(f, g, p)
@@ -89,26 +93,26 @@ end
 ## Algorithm 14.8
 ## find random monic of degree d that divides f
 function _equal_degree_splitting_call{T}(f::Poly{T}, p::T, d::Integer)
-    fail = zero(f)
+    fail = zero(Poly{T})::Poly{T}
     # q divides d < n = degree(f)!!
     k = 1
-    q = p^k
-    n = degree(f)
+    q = (p^k)::T
+    n = degree(f)::Int
     
 
-    a = poly_random_poly_over_Zp(T, n, p)
+    a = poly_random_poly_over_Zp(T, n, p)::Poly{T}
 
-    g = poly_gcd_over_Zp(a, f, p)
+    g = poly_gcd_over_Zp(a, f, p)::Poly{T}
     degree(g) > 0 && return g
 
     if isodd(p)
-        n1 = (q^d - 1) ÷ 2
-        b = poly_powermod_over_Zp(a, n1, f, p)
+        n1 = ((q^d - 1) ÷ 2)::T
+        b = poly_powermod_over_Zp(a, n1, f, p)::Poly{T}
     else
         m = k*d
         ## trace poly Tm = x^2^(m-1) + x^2^(m-2) + ... + x^4 + x^2 + x; this is Tm(a) (p399, p14.16)
-        b = prod([poly_powermod_over_Zp(a, 2^i, f, p) for i in 0:(m-1)])
-        b = poly_rem_over_Zp(b, f, p)
+        b = prod(Poly{T}[poly_powermod_over_Zp(a, 2^i, f, p) for i in 0:(m-1)])::Poly{T}
+        b = poly_rem_over_Zp(b, f, p)::Poly{T}
     end
 
     g = poly_gcd_over_Zp(b - one(f), f, p)
@@ -160,13 +164,13 @@ function hensel_step{T}(f::Poly{T}, g::Poly, h::Poly, s::Poly, t::Poly, m)
     fbar, gbar, hbar, sbar, tbar =   [MOD(m^2)(u) for u in (f,g,h,s,t)]
 
     ebar = MOD(m^2)(fbar -gbar * hbar)
-    qbar,rbar = fast_divrem(sbar * ebar, hbar, m^2)
+    qbar,rbar = poly_fast_divrem_over_Zp(sbar * ebar, hbar, m^2)
 
     gstar = MOD(m^2)(gbar  + tbar * ebar + qbar * gbar)
     hstar = MOD(m^2)(hbar + rbar)
     
     bbar = MOD(m^2)(sbar * gstar + tbar * hstar - ONE)
-    cbar, dbar = fast_divrem(sbar * bbar, hstar, m^2)
+    cbar, dbar = poly_fast_divrem_over_Zp(sbar * bbar, hstar, m^2)
 
     
     sstar = MOD(m^2)(sbar - dbar)
@@ -251,6 +255,17 @@ function hensel_lift{T}(f, facs, m::T, a0, l)
     tau
 end
 
+function find_zassenhaus_bounds{T<:Integer}(f::Poly{T})
+    n = degree(f)
+    A = norm(f, Inf)
+    b = lc(f)
+    B = sqrt(n+1) * 2.0^n * A * b
+    gamma = ceil(BigInt, 2*n*log2(n+1) + (2n-1)*log2(A))
+    M = 2 * gamma * log(gamma)
+
+    B, M
+end
+
 ## compute values and bounds for zassenhaus factoring
 function factor_zassenhaus_variables{T<:Integer}(f::Poly{T})
 
@@ -264,10 +279,11 @@ function factor_zassenhaus_variables{T<:Integer}(f::Poly{T})
     A = norm(f, Inf)
     b = lc(f)
     B = sqrt(n+1) * 2.0^n * A * b
-    C = (n+1.0)^(2.0 * n) * A^(2.0 * n-1)
-    gamma = ceil(BigInt, 2log2(C))
-    M = 2 * gamma * log(gamma)
+#    B = beauzamy_bound(f)
+#    B = landau_mignotte(f)
 
+    gamma = ceil(BigInt, 2*n*log2(n+1) + (2n-1)*log2(A))
+    M = 2 * gamma * log(gamma)
     isnan(M) && error("Sorry, we need to get smarter, as primes needed are too big")
 
     p = floor(BigInt, M/2)
@@ -299,11 +315,18 @@ function factor_square_free_zassenhaus{T<:Integer}(f::Poly{T})
         f = -f
     end
     
-    a0, p, l, b, B = factor_zassenhaus_variables(f)
+#    facs, p, a0, l, b, B = factor_zassenhaus_variables(f)
     
     ## three steps of factoring: over p; lifting to p^l; sorting out irreducibles over Z
-    facs = poly_factor_over_Zp(a0 * f, p) |> keys |> collect
+    B, M = find_zassenhaus_bounds(f)
+
+    p, facs = poly_check_five_good_ps(f, M, n < 20 ? 3 : (n < 60 ? 3 : 2)) # engineer this: more takes more time, but can save time...
+    length(facs) == 1 && return [f]
     
+    b = lc(f)
+    l = ceil(T, log(p, 2B+1))
+    a0 = invmod(b, p)
+
     tau = hensel_lift(f, facs, p, a0, l)
 
     facs = all_children(tau)
@@ -335,6 +358,161 @@ function factor_zassenhaus{T<: Integer}(f::Poly{T})
     U
 end
 
+##################################################
+## some efficiencies in Wang, Trevisan, and til
+## Check irreducible and if not return smallest number of factors
+## after looking at 5 primes
+function poly_check_five_good_ps{T}(f::Poly{T}, lambda, k=5)
+    no_facs = degree(f) + 1
+    facs = Poly{T}[]
+
+    p = ceil(BigInt, lambda)
+    P = p
+    for i in 1:k
+        while true
+            p = nextprime(p)
+            if rem(lc(f),p) != 0 && degree(poly_gcd_over_Zp(f, f', p)) <= 0
+                # a good prime
+                a0 = invmod(lc(f), p)
+                f_facs = poly_factor_over_Zp(a0 * f, p)
+                if length(f_facs) <= no_facs
+                    no_facs = length(f_facs)
+                    facs = f_facs
+                    P = p
+                    if no_facs == 1
+                        return (P, [f])
+                    end
+                end
+                break
+            end
+        end
+    end
+    return (P, collect(keys(facs)))
+end
+
+
+## return single_term beauzamy bound for f
+function get_single_term_bound(f)
+    c = 1
+    n = degree(f)
+    b = 2c * sqrt(2)^n / n^(3/8) * sqrt(bi2norm(f.a))
+    beta = b * lc(f) # min(2b^2, 2b*PF.lc(f))
+
+    beta
+end
+
+
+function find_term_exhaust{T}(f, S::Vector{Poly{T}}, k, p, l, b,B)
+    fail = zero(Poly{T})
+    
+    k > length(S) && return fail, Int[]
+    
+    for cmb in combinations(1:length(S), k)
+        gs, hs = _partition_by(S, cmb)
+        g = length(gs) > 0 ? MOD(p^l)(b * prod([MOD(p^l)(g) for g in gs])) : one(Poly{T})
+        g = primitive(g)
+        q,r = exact_divrem(f, g)
+        if r == zero(g) && q != zero(g)
+            return (g, cmb)
+        end
+    end
+    return fail,Int[]
+end
+
+
+function get_one_factor(f, facs,p, l, beta, k=1)
+    a0 = invmod(f[end], p)
+    tau = hensel_lift(f, facs, p, a0, l)
+    facs = all_children(tau)
+
+    fac = one(Poly{BigInt})
+    inds = Int[]
+    
+    while k <= length(facs)
+        fac, inds = find_term_exhaust(f, facs, k, p, l, f[end], beta)
+        length(inds) > 0 && break
+        k = k + 1
+    end
+
+    facs = facs[setdiff(eachindex(facs), inds)]
+    fac, facs, k
+end
+
+
+## f a square free polynomial in Z[x] to factor
+## return irreducibles f1, f2, ..., fr and c
+## follows basic algorithm of http://icm.mcs.kent.edu/reports/1992/ICM-9201-26.pdf
+## by Beauzamy, Trevisan and Want.
+## Seems faster than factor_zassenhaus.
+function beauzamy_trevisan_wang_factor_square_free{T <: Integer}(f::Poly{T})
+    n = degree(f)
+    n == 1 && return [f]
+    n == 0 && return Poly{T}[]
+    
+    cont = content(f)
+    f = primitive(f)
+    
+    if f[end] < 0
+        f = -f
+        cont = -cont
+    end
+
+    
+    ## F-5
+    ## reversed = false
+    ## if abs(f[end]) > abs(f[0])
+    ##     f = poly_reverse(f)
+    ##     reversed = true
+    ## end
+
+    Fs = Poly{T}[]
+    
+    ## F-2    
+    p, facs =  poly_check_five_good_ps(f, 10, n < 30 ? 5 : 3 ) # for large n, checking can take awhile.
+
+    beta = get_single_term_bound(f)
+    l = 0
+
+    while degree(f) > 0
+        beta = get_single_term_bound(f)
+        if p^l < beta 
+            ## must power up
+            l = ceil(BigInt, log(p, beta))
+            tau = hensel_lift(f, facs, p, invmod(f[end], p), l)
+            facs = all_children(tau)
+        end
+        fac, facs, k = get_one_factor(f, facs, p, l, beta, 1)
+
+        if degree(fac) >= 1
+            f,r = exact_divrem(f, fac)
+            push!(Fs, fac)
+        else
+            push!(Fs, f)
+            break
+        end
+    end
+    return Fs
+end
+    
+
+
+function factor_btw{T<: Integer}(f::Poly{T})
+    ## deflate 0s
+    nz = 0; while f(0) == zero(T)
+        nz += 1
+        f = Poly(coeffs(f)[2:end])
+    end
+    
+    fsq = convert(Poly{BigInt}, f) |> square_free |> primitive
+    
+    ps = beauzamy_trevisan_wang_factor_square_free(fsq)
+
+    U = find_multiplicities(T, f, ps)
+    nz > 0 && (U[variable(f)] = nz)
+    U
+end
+
+##################################################
 
 """
 Take f in Q[x] return l in Z, p in Z[x] where roots are the same
@@ -390,7 +568,7 @@ Notes:
 Uses Zassenhaus' algorithm 15.19 from *Modern Computer Algebra* By Joachim von zur Gathen and
 Jürgen Gerhard (GG, [1]). There is some randomness in the algorithm for factorization over a prime.
 
-For this algorithm factorization is done over a finite field over a
+For this algorithm, factorization is done over a finite field using a
 "good" prime and then lifted using Hensel's technique to a
 factorization over `p^l`, where `l` is large enough that the modular
 factors can be used to determine the factors over
@@ -422,12 +600,22 @@ see `SymPy.jl` or `Nemo.jl`, for example.
 Gerhard. Cambridge University Press, 785 pages
 
 """
-factor{R<:Integer}(f::Poly{R}) = factor_zassenhaus(f)
+factor{R<:Integer}(f::Poly{R}) = factor_btw(f) # factor_zassenhaus(f)
 
 ## factor over Q[x], returns factors in Z[x].
 function factor{T<:Integer}(p::Poly{Rational{T}})
     l, q = Qx_to_Zx(p)
-    factor(q)
+    U = factor(q)
+    V = Dict{Poly{Rational{T}}, Int}()
+    for (k,v) in U
+        if degree(k) == 0
+            j = Poly(Rational{T}[k[0]//l])
+        else
+            j = convert(Poly{Rational{T}}, k)
+        end
+        V[j] = v
+    end
+    V
 end
 
 
@@ -447,6 +635,7 @@ rational_roots{T<:Integer}(f::Poly{Rational{T}}) = rational_roots(Qx_to_Zx(f)[2]
 """
 Factor a polynomial `f` in Z[x] over Z/pZ[x], p a prime (not equal to 2).
 
+    A dictionary is returned. The keys are the irreducible factors over Zp as polynomials over the integers. The coefficients are centered about 0.
 """
 function factormod{T<:Integer,S<:Integer}(f::Poly{T}, p::S)
     g = convert(Poly{BigInt}, f)
@@ -455,6 +644,10 @@ function factormod{T<:Integer,S<:Integer}(f::Poly{T}, p::S)
     for (v,k) in U
         V[convert(Poly{T}, v)] = k
     end
+    ## add in constant term
+    a = f[end]
+    if a > div(p,2)  a = a - p end
+    V[Poly([a])] = 1
     V
 end
 
