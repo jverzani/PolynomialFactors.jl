@@ -25,18 +25,18 @@ g,u,v = PolynomialFactors.bezout(a,b)
 ## Chinese remainer theorem
 ms = [3,5,7]
 vs = [2,3,2]
-a = PolynomialFactors.crt(ms, vs)
+a = PolynomialFactors.chinese_remainder_theorem(ms, vs)
 @test reduce(&, [mod(a, m) == v for (m,v) in zip(ms,vs)])
 
 a = big(12345)
 ms = BigInt[11,  13,  17,  19,  23,  29,  31,  37]
 vs = BigInt[mod(a, m) for m in ms]
-b = PolynomialFactors.crt(ms, vs)
+b = PolynomialFactors.chinese_remainder_theorem(ms, vs)
 @test a == b
 
 a = big(123456789)
 ms = BigInt[101, 103, 107, 109, 113, 127, 131, 137, 139, 149]
 vs = BigInt[mod(a, m) for m in ms]
-b = PolynomialFactors.crt(ms, vs)
+b = PolynomialFactors.chinese_remainder_theorem(ms, vs)
 @test a == b
 

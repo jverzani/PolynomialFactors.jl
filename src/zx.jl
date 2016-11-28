@@ -3,32 +3,32 @@
 
 ## Some R[x] specific things
 
-"""
+## """
 
-compute rem(a^n, f) using powering in Fq[n] / <f>
+## compute rem(a^n, f) using powering in Fq[n] / <f>
 
-T must be a Euclidean Domain for mod to work as desired...
-"""
-function Base.powermod{T}(a::Poly{T}, n, m::Poly{T})
-    ## basically powermod in intfuncs.jl with wider type signatures
-    n < 0 && throw(DomainError())
-    n == 0 && return one(T)
-    b = oftype(m,mod(a,m))
+## T must be a Euclidean Domain for mod to work as desired...
+## """
+## function Base.powermod{T}(a::Poly{T}, n, m::Poly{T})
+##     ## basically powermod in intfuncs.jl with wider type signatures
+##     n < 0 && throw(DomainError())
+##     n == 0 && return one(T)
+##     b = oftype(m,mod(a,m))
     
-    t = prevpow2(n)
-    local r::Poly{T}
-    r = one(Poly{T})
-    while true
-        if n >= t
-            r = mod(r * b, m)
-            n -= t
-        end
-        t >>>= 1
-        t <= 0 && break
-        r = mod(r*r, m)
-    end
-    r
-end
+##     t = prevpow2(n)
+##     local r::Poly{T}
+##     r = one(Poly{T})
+##     while true
+##         if n >= t
+##             r = mod(r * b, m)
+##             n -= t
+##         end
+##         t >>>= 1
+##         t <= 0 && break
+##         r = mod(r*r, m)
+##     end
+##     r
+## end
 
 ## We will work with Z[x] over Z/pZ by converting the coefficient after the fact
 ## This function coerce coefficients of poly in Z[x] to those in Z/pZ, centered by default
@@ -37,7 +37,7 @@ function MOD(p::Integer, center=true)
     f -> begin
         T = eltype(f)
         ps = copy(coeffs(f))
-        S = div(p,2)::T
+        S = div(p,2)
         for i in 0:degree(f) #eachindex(f)
             a = mod(f[i], p)::T
             if (center && a > S) a = a - p end
@@ -48,8 +48,18 @@ function MOD(p::Integer, center=true)
 end
         
 
+## a monic, random poly of degree a < n
+function poly_random_poly_over_Zp(T, n, p)
+    a = rand(0:(p-1), n)
+    a = convert(Vector{T}, a)
+    b = Poly(a)
+    b == zero(b) && return poly_random_poly_over_Zp(T, n, p)
+    poly_monic_over_Zp(Poly(b), p)
+end
+
+
 ## a,m are polys in Z[x]. About 10 times faster than power using ModInt{p}
-function poly_powermod_over_Zp(a::Poly{BigInt}, n::Integer, m::Poly{BigInt}, p::Integer)
+function poly_powermod_over_Zp{S<:Integer}(a::Poly{BigInt}, n::S, m::Poly{BigInt}, p::Integer)
     ## basically powermod in intfuncs.jl with wider type signatures
     T = BigInt
     const ONE = one(Poly{T})::Poly{T}
@@ -60,7 +70,7 @@ function poly_powermod_over_Zp(a::Poly{BigInt}, n::Integer, m::Poly{BigInt}, p::
     b = poly_rem_over_Zp(a, m, p)
     b == ZERO && return ZERO
     
-    t = prevpow2(n)
+    t = prevpow2(n)::S
     local r::Poly{T}
     r = one(a)
     while true
@@ -116,20 +126,20 @@ function poly_normal_over_Zp{T}(f::Poly{T}, p::T)
     MOD(p)(invmod(f[end], p) * f)
 end
 
-function poly_EEA_over_Zp(f::Poly{BigInt}, g::Poly{BigInt}, p::BigInt)
-    T = BigInt
+function poly_EEA_over_Zp{T}(f::Poly{T}, g::Poly{T}, p::T)
+
 #    println("Poly EEA: f=$f; g=$g; p=$p")
-    const ZERO, ONE = zero(Poly{T}), one(Poly{T})
+    const ZERO::Poly{T}, ONE::Poly{T} = zero(Poly{T}), one(Poly{T})
 
     f, g = Poly{T}[MOD(p)(u) for u in (f,g)]
-    g == ZERO || f == ZERO && error("need f, g nonzero mod p")
+    (g == ZERO || f == ZERO) && error("need f, g nonzero mod p")
     
 
     rhos = T[f[end], g[end]]
     qs = Poly{T}[]
-    rs = [poly_normal_over_Zp(f, p), poly_normal_over_Zp(g, p)]
-    ss = [invmod(f[end], p)*ONE, ZERO]
-    ts = [ZERO, invmod(g[end], p)*ONE]
+    rs = Poly{T}[poly_normal_over_Zp(f, p), poly_normal_over_Zp(g, p)]
+    ss = Poly{T}[invmod(f[end], p)*ONE, ZERO]
+    ts = Poly{T}[ZERO, invmod(g[end], p)*ONE]
 
     i = 2
     while rs[i] != ZERO
@@ -147,10 +157,10 @@ function poly_EEA_over_Zp(f::Poly{BigInt}, g::Poly{BigInt}, p::BigInt)
 end
 
 ## return, g, s,t: g gcd, p*s + q*t = g
-function poly_bezout_over_Zp(f::Poly{BigInt}, g::Poly{BigInt}, p::BigInt)
-    T = BigInt
-    const ZERO, ONE = zero(Poly{T}), one(Poly{T})
-    f, g = [MOD(p)(u) for u in (f,g)]
+function poly_bezout_over_Zp{T}(f::Poly{T}, g::Poly{T}, p::T)
+    
+    const ZERO::Poly{T}, ONE::Poly{T} = zero(Poly{T}), one(Poly{T})
+    f, g = Poly{T}[MOD(p)(u) for u in (f,g)]
 
     f == ZERO && return g, ONE, ZERO
     g == ZERO && return f, ZERO, ONE
@@ -211,7 +221,7 @@ function modular_gcd_small_prime{T <: Integer}(p::Poly{T}, q::Poly{T})
     ws = zeros(BigInt, minlength)
     for i in 1:minlength
         vs = BigInt[vbars[j][i-1] for j in 1:N]
-        wi = crt(S, b*vs)
+        wi = chinese_remainder_theorem(S, b*vs)
         wi > (prodS-1) / 2
         ws[i] = wi > halfway ? wi - prodS : wi
     end
@@ -231,10 +241,13 @@ Example:
 
 ```
 p = poly([1,1,2,3,4,4,4,4,4])
-gcd(p, p')  # (x-1)*(x-4)^4
+egcd(p, p')  # (x-1)*(x-4)^4
 ```
+
+Note: We call this `egcd`, not `gcd`, as the `gcd` function in `Polynomials` is defined for polynomials over `Z[x]`, but is not *e*xact.
+
 """
-function Base.gcd{T<:Integer}(p::Poly{T}, q::Poly{T})
+function egcd{T<:Integer}(p::Poly{T}, q::Poly{T})
     n,m = degree(p), degree(q)
     if n < m
         q,p = p,q

@@ -4,8 +4,8 @@ module PolynomialFactors
 
 
 ## TODO
-## * engineer around large p issue. 
-## * could add real_roots here? But that seems out of place
+## * performance is really poor for larger degrees.
+
 
 
 
@@ -31,7 +31,7 @@ include("factor.jl")
 export factor, rational_roots, factormod
 
 ## Try to speed up the initial calls
-precompile(gcd, (Poly{BigInt},Poly{BigInt}))
+precompile(egcd, (Poly{BigInt},Poly{BigInt}))
 precompile(modular_gcd_small_prime,  (Poly{BigInt},Poly{BigInt}))
 precompile(factor_square_free_zassenhaus, (Poly{BigInt},))
 precompile(factor, (Poly{Int},))
