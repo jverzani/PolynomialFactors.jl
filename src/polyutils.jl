@@ -301,10 +301,10 @@ end
     
     
 ## """
-## Is `g` square free? Assumes you can tell by comparing gcd(g, g')
+## Is `g` square free? Assumes you can tell by comparing gcd(g, polyder(g))
 ## """
 ## function issquarefree(g::Poly)
-##     u =  egcd(g,g')
+##     u =  egcd(g,polyder(g))
 ##     degree(u) == 0
 ## end
 
@@ -318,12 +318,12 @@ end
 ## Could use in factoring over Q[x], but don't for now.
 ## """
 ## function yun_square_free{T <: Integer}(f::Poly{Rational{T}})
-##     u = gcd(f, f')
-##     v,w  = div(f,u), div(f',u)
+##     u = gcd(f, polyder(f))
+##     v,w  = div(f,u), div(polyder(f),u)
 ##     hs = Poly{Rational{T}}[]
 ##     while true
-##         u = gcd(v, w - v')
-##         v, w = div(v, u), div(w - v', u)
+##         u = gcd(v, w - polyder(v))
+##         v, w = div(v, u), div(w - polyder(v), u)
 ##         push!(hs, h)
 ##         degree(v) == 0 && break
 ##     end
@@ -337,7 +337,7 @@ Return square free version of `f`
 function square_free{T<:Integer}(f::Poly{T})
     degree(f) <= 1 && return f
     
-    g = egcd(f, f')  # monic
+    g = egcd(f, polyder(f))  # monic
     d = degree(g) 
     
     if  d > 0

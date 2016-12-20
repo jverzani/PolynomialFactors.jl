@@ -241,7 +241,7 @@ Example:
 
 ```
 p = poly([1,1,2,3,4,4,4,4,4])
-egcd(p, p')  # (x-1)*(x-4)^4
+egcd(p, polyder(p))  # (x-1)*(x-4)^4
 ```
 
 Note: We call this `egcd`, not `gcd`, as the `gcd` function in `Polynomials` is defined for polynomials over `Z[x]`, but is not *e*xact.

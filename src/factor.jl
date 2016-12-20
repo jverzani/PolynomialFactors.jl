@@ -289,7 +289,7 @@ function factor_zassenhaus_variables{T<:Integer}(f::Poly{T})
     p = floor(BigInt, M/2)
     while true
         p = nextprime(p)
-        rem(b,p) != 0 && degree(poly_gcd_over_Zp(f, f', p)) <= 0 && break
+        rem(b,p) != 0 && degree(poly_gcd_over_Zp(f, polyder(f), p)) <= 0 && break
     end
 
     l = ceil(T, log(p, 2B+1))
@@ -371,7 +371,7 @@ function poly_check_five_good_ps{T}(f::Poly{T}, lambda, k=5)
     for i in 1:k
         while true
             p = nextprime(p)
-            if rem(lc(f),p) != 0 && degree(poly_gcd_over_Zp(f, f', p)) <= 0
+            if rem(lc(f),p) != 0 && degree(poly_gcd_over_Zp(f, polyder(f), p)) <= 0
                 # a good prime
                 a0 = invmod(lc(f), p)
                 f_facs = poly_factor_over_Zp(a0 * f, p)
