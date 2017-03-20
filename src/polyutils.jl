@@ -67,9 +67,9 @@ normal{T}(a::Poly{T}) = lc(a) != 0 ?  a * inv(lc(a)) : a
 """
 exact divrem for linear factors
 """
-function synthetic_division(p::Poly, c::Number)
+function synthetic_division{T}(p::Poly{T}, c::Number)
     ps = copy(p.a)                    # [p0, p1, ..., pn]
-    qs = eltype(p)[pop!(ps)]           # take from right
+    qs = T[pop!(ps)]           # take from right
     while length(ps) > 0
         unshift!(qs, c*qs[1] + pop!(ps))
     end
@@ -86,9 +86,9 @@ If p(x) = (x-c)^k q(x) then return q(x), k (assuming x-c does not divide q(x))
 function deflate{T}(p::Poly{T}, c::T)
     k = 0
     q, r = synthetic_division(p,c)
-    while abs(r) <=eps(T)
+    while abs(r) <= eps(T)
         p = q
-        q,r = synthetic_division(p, c)
+        q, r = synthetic_division(p, c)
         k = k + 1
     end
     p, k
@@ -106,7 +106,7 @@ function deflate{T,S}(p::Poly{T}, fac::Poly{S})
     while r == zero(Poly{T})
         q == zero(Poly{T}) && break  # exact_divrem(Z[x],Z[x]) returns 0,0 if can't divide
         p = q
-        q,r = exact_divrem(p, fact)
+        q, r = exact_divrem(p, fact)
         k = k + 1
     end
     p, k

@@ -35,7 +35,7 @@
 ## functions `poly_*_over_Zp` will be using this.
 function MOD(p::Integer, center=true)
     f -> begin
-        T = eltype(f)
+        T = eltype(coeffs(f))
         ps = copy(coeffs(f))
         S = div(p,2)
         for i in 0:degree(f) #eachindex(f)
