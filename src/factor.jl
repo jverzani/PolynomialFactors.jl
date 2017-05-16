@@ -184,7 +184,7 @@ function hensel_step{T}(f::Poly{T}, g::Poly, h::Poly, s::Poly, t::Poly, m)
 end
 
 # collect factors into a tree for apply HenselStep
-abstract AbstractFactorTree
+@compat abstract type AbstractFactorTree end
 
 type FactorTree <: AbstractFactorTree
     fg
