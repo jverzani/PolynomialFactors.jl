@@ -10,7 +10,6 @@ module PolynomialFactors
 
 
 using Polynomials
-using Iterators
 using Compat
 
 if VERSION < v"0.5.0"
@@ -18,7 +17,7 @@ if VERSION < v"0.5.0"
 else
     using Combinatorics
     using Primes
-    
+
     import Primes: factor
 end
 
