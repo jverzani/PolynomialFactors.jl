@@ -73,6 +73,8 @@ Given numbers or polynomials `p` and `q`, return
 * `u`, `v` with g = u*p + v*q
 
 cf: [wikipedia](https://en.wikipedia.org/wiki/Polynomial_greatest_common_divisor#Euclidean_algorithm)
+
+XXX use `gcdx`    
 """
 function bezout{R}(a::R, b::R)
     T = typeof(a)
@@ -110,7 +112,7 @@ function chinese_remainder_theorem{R}(ms::Vector{R}, vs::Vector{R})
 
     for i in 1:N
         mi = prod(ms[vcat(1:i-1, i+1:N)])  # M / ms[i]
-        g,u,v = bezout(mi, ms[i])  # g is 1 by assumption u * mi + v * ms[i] = 1
+        g,u,v = gcdx(mi, ms[i])  # g is 1 by assumption u * mi + v * ms[i] = 1
         ci = vs[i] * u * mi
         tot = tot + ci 
     end
