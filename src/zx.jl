@@ -59,7 +59,7 @@ end
 
 
 ## a,m are polys in Z[x]. About 10 times faster than power using ModInt{p}
-function poly_powermod_over_Zp{S<:Integer}(a::Poly{BigInt}, n::S, m::Poly{BigInt}, p::Integer)
+function poly_powermod_over_Zp(a::Poly{BigInt}, n::S, m::Poly{BigInt}, p::Integer) where {S<:Integer}
     ## basically powermod in intfuncs.jl with wider type signatures
     T = BigInt
     const ONE = one(Poly{T})::Poly{T}
@@ -114,19 +114,19 @@ function poly_divrem_over_Zp(a::Poly{BigInt}, b::Poly{BigInt}, p::BigInt)
 end
 
 ## div() and rem() over Z/pZ
-poly_div_over_Zp{T<:Integer}(a::Poly{T}, b::Poly{T}, p::Integer) =  poly_divrem_over_Zp(a,b,p)[1]
-poly_rem_over_Zp{T<:Integer}(a::Poly{T}, b::Poly{T}, p::Integer) =  poly_divrem_over_Zp(a,b,p)[2]
-poly_divides_over_Zp{T}(g::Poly{T}, h::Poly{T}, p::Integer) = poly_rem_over_Zp(g, h, p) == zero(Poly{T})
+poly_div_over_Zp(a::Poly{T}, b::Poly{T}, p::Integer) where {T<:Integer} =  poly_divrem_over_Zp(a,b,p)[1]
+poly_rem_over_Zp(a::Poly{T}, b::Poly{T}, p::Integer) where {T<:Integer} =  poly_divrem_over_Zp(a,b,p)[2]
+poly_divides_over_Zp(g::Poly{T}, h::Poly{T}, p::Integer) where {T} = poly_rem_over_Zp(g, h, p) == zero(Poly{T})
 
 
 ## should jut be monic?
-function poly_normal_over_Zp{T}(f::Poly{T}, p::T)
+function poly_normal_over_Zp(f::Poly{T}, p::T) where {T}
     f = MOD(p)(f)
     f == zero(f) && return f
     MOD(p)(invmod(f[end], p) * f)
 end
 
-function poly_EEA_over_Zp{T}(f::Poly{T}, g::Poly{T}, p::T)
+function poly_EEA_over_Zp(f::Poly{T}, g::Poly{T}, p::T) where {T}
 
 #    println("Poly EEA: f=$f; g=$g; p=$p")
     const ZERO::Poly{T}, ONE::Poly{T} = zero(Poly{T}), one(Poly{T})
@@ -157,7 +157,7 @@ function poly_EEA_over_Zp{T}(f::Poly{T}, g::Poly{T}, p::T)
 end
 
 ## return, g, s,t: g gcd, p*s + q*t = g
-function poly_bezout_over_Zp{T}(f::Poly{T}, g::Poly{T}, p::T)
+function poly_bezout_over_Zp(f::Poly{T}, g::Poly{T}, p::T) where {T}
     
     const ZERO::Poly{T}, ONE::Poly{T} = zero(Poly{T}), one(Poly{T})
     f, g = Poly{T}[MOD(p)(u) for u in (f,g)]
@@ -171,7 +171,7 @@ function poly_bezout_over_Zp{T}(f::Poly{T}, g::Poly{T}, p::T)
 end
 
 ## find gcd(fbar, gbar) where fbar = f mod Z/pZ
-function poly_gcd_over_Zp{T<:Integer, S<:Integer}(a::Poly{T}, b::Poly{T}, p::S)
+function poly_gcd_over_Zp(a::Poly{T}, b::Poly{T}, p::S) where {T<:Integer, S<:Integer}
     r0, s0, t0 = poly_bezout_over_Zp(a, b, p)
     return poly_monic_over_Zp(r0, p)
 end
@@ -185,7 +185,7 @@ ALgorithm 6.38 small prime version.
 
 TODO: check edge cases, large values, ...
 """
-function modular_gcd_small_prime{T <: Integer}(p::Poly{T}, q::Poly{T})
+function modular_gcd_small_prime(p::Poly{T}, q::Poly{T}) where {T <: Integer}
     f,g = [convert(Poly{BigInt}, u) for u in (p,q)]
     
     A =  max(norm(f, Inf), norm(g, Inf)) 
@@ -247,7 +247,7 @@ egcd(p, polyder(p))  # (x-1)*(x-4)^4
 Note: We call this `egcd`, not `gcd`, as the `gcd` function in `Polynomials` is defined for polynomials over `Z[x]`, but is not *e*xact.
 
 """
-function egcd{T<:Integer}(p::Poly{T}, q::Poly{T})
+function egcd(p::Poly{T}, q::Poly{T}) where {T<:Integer}
     n,m = degree(p), degree(q)
     if n < m
         q,p = p,q

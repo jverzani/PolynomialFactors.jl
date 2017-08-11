@@ -5,7 +5,7 @@
 mu(i,j,B,Bs) = vecdot(B[i,:], Bs[j,:]) // vecdot( Bs[j,:], Bs[j,:] )
 
 ##
-function reduce_BU!{T}(i, B::Matrix{T}, U)
+function reduce_BU!(i, B::Matrix{T}, U) where {T}
     m,n = size(B)
     for j=(i-1):-1:1
         r = round(T, U[i,j])
@@ -29,7 +29,7 @@ B is a matrix of row vectors
 
 Modifies B to be a nearly orthogonal matrix of row vectors spannng the same integer lattice as the original B.
 """
-function LLLBR!{T}(B::Matrix{T}, c=2)
+function LLLBR!(B::Matrix{T}, c=2) where {T}
     m,n = size(B)
     m == n || throw(DomainError())
     
@@ -80,7 +80,7 @@ end
 
 ## For a polynomial p, create a lattice of p, xp, x^2p, ... then find a short vector.
 ## This will be a potential factor of f
-function short_vector{T}(u::Poly{T}, m, j, d)
+function short_vector(u::Poly{T}, m, j, d) where {T}
     F = zeros(T, j, j)
     us = coeffs(u)
     for i in 0:(j-d-1)
@@ -96,7 +96,7 @@ end
 ## u is a factor over Zp
 ## we identify irreducible gstar of f
 ## return gstar, fstar = f / gstar (basically), and reduced Ts
-function identify_factor{T}(u::Poly{T}, fstar::Poly{T}, Ts::Vector{Poly{T}}, p::T, l::T, b, B)
+function identify_factor(u::Poly{T}, fstar::Poly{T}, Ts::Vector{Poly{T}}, p::T, l::T, b, B) where {T}
     
     d, nstar = degree(u), degree(fstar)
     d < nstar || throw(DomainError())
@@ -161,7 +161,7 @@ end
 ## This code tries all combinations of the irreducible factors over Z_p^l to see
 ## which correspond to irreducible factors over Z. For some polynomials, it
 ## will try all factors out, which will not scale well. 
-function _poly_fish_out{T}(S::Vector{Poly{T}}, k, p, l, b,B)
+function _poly_fish_out(S::Vector{Poly{T}}, k, p, l, b,B) where {T}
 #    println("poly fish out: B=$B, $S")
     fail = zero(Poly{T})
     

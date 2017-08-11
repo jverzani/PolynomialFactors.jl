@@ -1,4 +1,4 @@
-isdefined(Base, :__precompile__) && __precompile__()
+__precompile__()
 
 module PolynomialFactors
 
@@ -10,16 +10,10 @@ module PolynomialFactors
 
 
 using Polynomials
-using Compat
+using Combinatorics
+using Primes
+import Primes: factor
 
-if VERSION < v"0.5.0"
-    import Base: factor
-else
-    using Combinatorics
-    using Primes
-
-    import Primes: factor
-end
 
 include("utils.jl")
 include("polyutils.jl")

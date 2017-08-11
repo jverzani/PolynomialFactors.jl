@@ -10,7 +10,7 @@ E.g. `1 + 2x + 3x^2 -> 3 + 2x + 1x^2`.
 Can set `k` so that we reverse poly `3 + 2x + 1x^2 + 0x^3 -> 0 + 1x +2x^2 + 3x^3`
 
 """
-function poly_reverse{T}(p::Poly{T}, k=degree(p))
+function poly_reverse(p::Poly{T}, k=degree(p)) where {T}
     k < degree(p) && error("k must be >= degree(p)")
     ps = T[p[i] for i in k:-1:0]
     Poly(ps, p.var)
@@ -32,7 +32,7 @@ end
 monic(p::Poly) = lc(p) != 0 ? Poly(p.a * inv(p[degree(p)]), p.var) : p
 
 ## make monic as poly in Zp
-function poly_monic_over_Zp{T<:Integer}(a::Poly{T}, p)
+function poly_monic_over_Zp(a::Poly{T}, p) where {T<:Integer}
     b = MOD(p)(a)
     lc(b) == zero(T) && return a
     bi = invmod(lc(b), p)
@@ -42,16 +42,16 @@ end
 
 
 # content in poly ring R[u][v] is monic(gcd(...))
-content{T}(p::Poly{T}) = convert(T, gcd(p.a))
+content(p::Poly{T}) where {T} = convert(T, gcd(p.a))
 
-function primitive{T}(p::Poly{T})
+function primitive(p::Poly{T}) where {T}
     ps = p.a
     b = content(p)
     qs = T[div(a,b) for a in ps]
     q = Poly(qs, p.var)
     q[end] < 0 ? -q : q
 end
-isprimitive{T}(p::Poly{T}) = cont(p) == one(T)
+isprimitive(p::Poly{T}) where {T}= cont(p) == one(T)
 
 """
 Leading coefficient of a polynomial
@@ -61,13 +61,13 @@ lc(p::Poly) = p[end]
 """
 normal form of a. Basically same as monic, but may be more general for Euclidean Domain
 """
-normal{T}(a::Poly{T}) = lc(a) != 0 ?  a * inv(lc(a)) : a
+normal(a::Poly) = lc(a) != 0 ?  a * inv(lc(a)) : a
 
 
 """
 exact divrem for linear factors
 """
-function synthetic_division{T}(p::Poly{T}, c::Number)
+function synthetic_division(p::Poly{T}, c::Number) where {T}
     ps = copy(p.a)                    # [p0, p1, ..., pn]
     qs = T[pop!(ps)]           # take from right
     while length(ps) > 0
@@ -83,7 +83,7 @@ end
 If p(x) = (x-c)^k q(x) then return q(x), k (assuming x-c does not divide q(x))
 
 """
-function deflate{T}(p::Poly{T}, c::T)
+function deflate(p::Poly{T}, c::T) where {T}
     k = 0
     q, r = synthetic_division(p,c)
     while abs(r) <= eps(T)
@@ -99,7 +99,7 @@ end
 If `p(x) = f(x)^k * q(x) ` with `f` not dividing `q`, then return `(f, k)`.
 
 """
-function deflate{T,S}(p::Poly{T}, fac::Poly{S})
+function deflate(p::Poly{T}, fac::Poly{S}) where {T,S}
     k = 0
     fact = convert(Poly{T}, fac)
     q,r = exact_divrem(p, fact)
@@ -112,7 +112,7 @@ function deflate{T,S}(p::Poly{T}, fac::Poly{S})
     p, k
 end
 
-function deflate_over_Zp{T}(f::Poly{T}, g::Poly{T}, p)
+function deflate_over_Zp(f::Poly{T}, g::Poly{T}, p) where {T}
     const ZERO = zero(f)
     
     q,r = poly_divrem_over_Zp(f, g, p) # returns 0,0 if can't compute
@@ -181,7 +181,7 @@ Find inverse over <x^l> of f(x) in R[x], with R a ring
 Assumes f(0) = 1. Otherwise, use inv(f(0)) * f
 
 """
-function newton_inversion{T}(f::Poly{T}, l::Int)
+function newton_inversion(f::Poly{T}, l::Int) where {T}
     if f[0] == -one(T)
         f = -f
     end
@@ -205,7 +205,7 @@ a = q * b + r with deg(r) < deg(b)
 
 Does not divide, so a, b in R[x]. Must assume b is monic.
 """
-function poly_fast_divrem_over_Zp{T<:Integer,S<:Integer}(a::Poly{T}, b::Poly{T}, p::S)
+function poly_fast_divrem_over_Zp(a::Poly{T}, b::Poly{T}, p::S) where {T<:Integer,S<:Integer}
     
     b == zero(Poly{T})  && error("Assume b is neq 0 and monic; $b")
     b[end] != one(T) && error("Assume b is neq 0 and monic: $b")
@@ -223,56 +223,6 @@ function poly_fast_divrem_over_Zp{T<:Integer,S<:Integer}(a::Poly{T}, b::Poly{T},
 end
 
 
-
-
-## function fast_divrem{R}(a::Poly{R}, b::Poly{R})
-    
-##     b == zero(Poly{R})  && error("Assume b is neq 0 and monic: $b")
-##     lc(b) != one(R) && error("Assume b is neq 0 and monic: $b")
-    
-##     degree(a) < degree(b) && return (zero(Poly{R}), as)
-##     m = degree(a) - degree(b)
-
-##     ra, rb1 = poly_reverse(a), newton_inversion(poly_reverse(b), m+1)
-
-##     qstar = ra * rb1
-##     qstar = Poly(qstar[0:(m+1)])
-    
-##     q = Poly(R[qstar[i-1] for i in reverse(1:m+1)]) # reverse q but may need to pad 0s
-##     r = a - b * q
-
-##     (q, r)
-
-## end
-
-## """
-## pseudo division with remainder over Z[x]. Does not assume b is monic
-
-## Find q, r in Z[x] with lc(b)^(m-n + 1) * a = q * b + r
-
-## (Z[x] is not a Euclidean domain, so divrem does not exist within Z[x])
-## """
-## function pdivrem{T<:Integer}(a::Poly{T}, b::Poly{T})
-    
-##     m, n = degree(a), degree(b)
-##     m < n && error("degree(a) >= degree(b)")
-
-##     c = b[end]
-##     c == 1 && return(fast_divrem(a, b))
-    
-##     x = variable(a)
-##     q = 0
-##     r = a * c^(m - n + 1)
-##     while degree(r) >= n
-##         s = div(r[end], c)  * x^(degree(r) - n )
-##         q = q + s
-##         r = r - s*b
-##     end
-
-##     q, r
-## end
-
-
 """
 Division algorithm for Z[x]
 
@@ -284,7 +234,7 @@ returns q,r with
 If no such q and r can be found, then both `q` and `r` are 0.
 
 """
-function exact_divrem{T<:Integer}(a::Poly{T}, b::Poly{T})
+function exact_divrem(a::Poly{T}, b::Poly{T}) where {T<:Integer}
     f,g = a, b
     x = variable(g)
     q, r = zero(f), f
@@ -300,14 +250,6 @@ function exact_divrem{T<:Integer}(a::Poly{T}, b::Poly{T})
 end
     
     
-## """
-## Is `g` square free? Assumes you can tell by comparing gcd(g, polyder(g))
-## """
-## function issquarefree(g::Poly)
-##     u =  egcd(g,polyder(g))
-##     degree(u) == 0
-## end
-
 
 ## """
 
@@ -334,7 +276,7 @@ end
 """
 Return square free version of `f`
 """
-function square_free{T<:Integer}(f::Poly{T})
+function square_free(f::Poly{T}) where {T<:Integer}
     degree(f) <= 1 && return f
     
     g = egcd(f, polyder(f))  # monic
@@ -349,7 +291,7 @@ function square_free{T<:Integer}(f::Poly{T})
 end
  
 ## bounds
-function _bi2up{T}(as::Vector{T}, k, n)
+function _bi2up(as::Vector{T}, k, n) where {T}
     a = one(T)
     tot = as[1]^2 * a
     for i in 1:k
@@ -360,7 +302,7 @@ function _bi2up{T}(as::Vector{T}, k, n)
 end
 
 ## [f]2 norm = sqrt(sum(a[i]^2/choose(n,i))) 
-function bi2norm{T}(as::Vector{T})
+function bi2norm(as::Vector{T}) where {T}
     n = length(as) - 1
     k = div(n,2)
     out = _bi2up(as[1:(k+1)], k, n) + _bi2up(reverse(as[(k+2):end]), n-k-1, n)
@@ -368,13 +310,13 @@ function bi2norm{T}(as::Vector{T})
 end
 
 # http://icm.mcs.kent.edu/reports/1992/ICM-9201-26.pdf
-function beauzamy_bound{T}(p::Poly{T})
+function beauzamy_bound(p::Poly{T})where {T}
      n = degree(p)
      3.0^(3/4) / 2 / sqrt(pi) * sqrt(3)^n / sqrt(n) * bi2norm(p.a)
 end
 
 
-function landau_mignotte{T}(p::Poly{T})
+function landau_mignotte(p::Poly{T}) where {T}
     d = floor(BigInt, degree(p)/2)
     k = floor(BigInt, d/2)
     a = binomial(d,k)

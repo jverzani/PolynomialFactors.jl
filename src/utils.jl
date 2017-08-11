@@ -25,8 +25,8 @@ end
 
 ## Extended Euclidean Algorithm
 
-lc{T <: Number}(a::T) = one(T)
-normal{T<:Number}(a::T) = lc(a) == 0 ? one(T) : a
+lc(a::T) where {T} = one(T)
+normal(a::T) where {T} = lc(a) == 0 ? one(T) : a
 
 
 """
@@ -42,7 +42,7 @@ Returns rs, ss, ts, ps, qs where
 rs[i] = ss[i] * f[i] + ts[i] * g[i]
 
 """
-function EEA{R}(f::R, g::R)
+function EEA(f::R, g::R) where {R}
     ps = [lc(f), lc(g)]
     rs = R[normal(f), normal(g)]
     ss = R[inv(ps[end-1]), zero(R)]
@@ -74,10 +74,9 @@ Given numbers or polynomials `p` and `q`, return
 
 cf: [wikipedia](https://en.wikipedia.org/wiki/Polynomial_greatest_common_divisor#Euclidean_algorithm)
 
-XXX use `gcdx`    
+Note: we use `gcdx` for numbers
 """
-function bezout{R}(a::R, b::R)
-    T = typeof(a)
+function bezout(a::T, b::T) where {T}
     const ZERO, ONE = zero(T), one(T)
     if a == ZERO
         return b, ZERO, ONE
@@ -104,7 +103,7 @@ input: m1, ..., mr in R pairwise co prime
 output v in R where for each i: v = vi mod mi
 
 """
-function chinese_remainder_theorem{R}(ms::Vector{R}, vs::Vector{R})
+function chinese_remainder_theorem(ms::Vector{R}, vs::Vector{R}) where {R}
     tot = zero(eltype(ms))
     M = prod(ms)
     N = length(ms)

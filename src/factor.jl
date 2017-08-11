@@ -12,7 +12,7 @@
 ## * ideas here http://www.math.fsu.edu/~hoeij/papers/issac10/A.pdf can be implemented
 
 ## Algorithm 14.13
-function poly_factor_over_Zp{R,S}(a::Poly{R}, m::S, d=1)
+function poly_factor_over_Zp(a::Poly{R}, m::S, d=1) where {R,S}
     T = promote_type(R,S)
     f,p = convert(Poly{T}, a), convert(T,m)
     
@@ -43,7 +43,7 @@ function poly_factor_over_Zp{R,S}(a::Poly{R}, m::S, d=1)
 end
 
 ###
-function equal_degree_factorization_over_Zp{T <: Integer}(f::Poly{T}, p::T, d::Integer, MAXSTEPS=32)
+function equal_degree_factorization_over_Zp(f::Poly{T}, p::T, d::Integer, MAXSTEPS=32) where {T <: Integer}
 
     fail = Poly{T}[zero(f)]
 
@@ -70,7 +70,7 @@ function equal_degree_factorization_over_Zp{T <: Integer}(f::Poly{T}, p::T, d::I
 end
 
 ## use random algorithm to find factor
-function equal_degree_splitting_over_Zp{T}(f::Poly{T}, p::Integer, d::Integer, MAXSTEPS=16)
+function equal_degree_splitting_over_Zp(f::Poly{T}, p::Integer, d::Integer, MAXSTEPS=16) where {T}
     fail = zero(f)
     
     n = degree(f)
@@ -92,7 +92,7 @@ end
 
 ## Algorithm 14.8
 ## find random monic of degree d that divides f
-function _equal_degree_splitting_call{T}(f::Poly{T}, p::T, d::Integer)
+function _equal_degree_splitting_call(f::Poly{T}, p::T, d::Integer) where {T}
     fail = zero(Poly{T})::Poly{T}
     # q divides d < n = degree(f)!!
     k = 1
@@ -129,7 +129,7 @@ end
 ## code to find factors from factors over Z/pZ
 
 ## Split set S into two pieces by index. Like partition from iterators
-_partition_by{T}(S::Vector{T}, inds) = T[S[i] for i in inds], T[S[j] for j in setdiff(1:length(S), inds)]
+_partition_by(S::Vector{T}, inds) where {T} = T[S[i] for i in inds], T[S[j] for j in setdiff(1:length(S), inds)]
 
 
 
@@ -151,7 +151,7 @@ for f,g,h,s,t in Z[x]  or Z/pZ[x] with
 
 output g*,h*,s*,t* in Z/m^2Z[x] with 1) - 4) holding over m^2
 """
-function hensel_step{T}(f::Poly{T}, g::Poly, h::Poly, s::Poly, t::Poly, m)
+function hensel_step(f::Poly{T}, g::Poly, h::Poly, s::Poly, t::Poly, m) where {T}
     ## check conditions
     MOD(m)(f - g*h) == zero(f) || error("need f = gh mod m for inputs")
     lc(h) == 1 || error("need h monic")
@@ -184,9 +184,9 @@ function hensel_step{T}(f::Poly{T}, g::Poly, h::Poly, s::Poly, t::Poly, m)
 end
 
 # collect factors into a tree for apply HenselStep
-@compat abstract type AbstractFactorTree end
+abstract type AbstractFactorTree end
 
-type FactorTree <: AbstractFactorTree
+mutable struct FactorTree <: AbstractFactorTree
     fg
     children
     s
@@ -194,7 +194,7 @@ type FactorTree <: AbstractFactorTree
     FactorTree(fg) = new(prod(fg), Any[])
 end
 
-type FactorTree_over_Zp <: AbstractFactorTree
+mutable struct FactorTree_over_Zp <: AbstractFactorTree
     fg
     children
     s
@@ -241,7 +241,7 @@ end
 Algo 15.17 multifactor Hensel lifting
 
 """
-function hensel_lift{T}(f, facs, m::T, a0, l)
+function hensel_lift(f, facs, m::T, a0, l) where {T}
 
     tau = make_factor_tree_over_Zp(facs, m)
     
@@ -255,7 +255,7 @@ function hensel_lift{T}(f, facs, m::T, a0, l)
     tau
 end
 
-function find_zassenhaus_bounds{T<:Integer}(f::Poly{T})
+function find_zassenhaus_bounds(f::Poly{T}) where {T<:Integer}
     n = degree(f)
     A = norm(f, Inf)
     b = lc(f)
@@ -267,7 +267,7 @@ function find_zassenhaus_bounds{T<:Integer}(f::Poly{T})
 end
 
 ## compute values and bounds for zassenhaus factoring
-function factor_zassenhaus_variables{T<:Integer}(f::Poly{T})
+function factor_zassenhaus_variables(f::Poly{T}) where {T<:Integer}
 
     n = degree(f)
     if n == 0
@@ -305,7 +305,7 @@ Algorithm 15.19
 Factoring using Hensel Lifting, Zassenhaus' algorithm
 
 """
-function factor_square_free_zassenhaus{T<:Integer}(f::Poly{T})
+function factor_square_free_zassenhaus(f::Poly{T}) where {T<:Integer}
 
     n = degree(f)
     n == 1 && return [f]
@@ -342,7 +342,7 @@ function factor_square_free_zassenhaus{T<:Integer}(f::Poly{T})
 end
 
 
-function factor_zassenhaus{T<: Integer}(f::Poly{T})
+function factor_zassenhaus(f::Poly{T}) where {T<: Integer}
     ## deflate 0s
     nz = 0; while f(0) == zero(T)
         nz += 1
@@ -362,7 +362,7 @@ end
 ## some efficiencies in Wang, Trevisan, and til
 ## Check irreducible and if not return smallest number of factors
 ## after looking at 5 primes
-function poly_check_five_good_ps{T}(f::Poly{T}, lambda, k=5)
+function poly_check_five_good_ps(f::Poly{T}, lambda, k=5) where {T}
     no_facs = degree(f) + 1
     facs = Poly{T}[]
 
@@ -402,7 +402,7 @@ function get_single_term_bound(f)
 end
 
 
-function find_term_exhaust{T}(f, S::Vector{Poly{T}}, k, p, l, b,B)
+function find_term_exhaust(f, S::Vector{Poly{T}}, k, p, l, b,B) where {T}
     fail = zero(Poly{T})
     
     k > length(S) && return fail, Int[]
@@ -444,7 +444,7 @@ end
 ## follows basic algorithm of http://icm.mcs.kent.edu/reports/1992/ICM-9201-26.pdf
 ## by Beauzamy, Trevisan and Want.
 ## Seems faster than factor_zassenhaus.
-function beauzamy_trevisan_wang_factor_square_free{T <: Integer}(f::Poly{T})
+function beauzamy_trevisan_wang_factor_square_free(f::Poly{T}) where {T <: Integer}
     n = degree(f)
     n == 1 && return [f]
     n == 0 && return Poly{T}[]
@@ -496,7 +496,7 @@ end
     
 
 
-function factor_btw{T<: Integer}(f::Poly{T})
+function factor_btw(f::Poly{T}) where {T<: Integer}
     ## deflate 0s
     nz = 0; while f(0) == zero(T)
         nz += 1
@@ -517,7 +517,7 @@ end
 """
 Take f in Q[x] return l in Z, p in Z[x] where roots are the same
 """
-function Qx_to_Zx{T}(f::Poly{Rational{T}})
+function Qx_to_Zx(f::Poly{Rational{T}}) where {T}
     n = degree(f)
     l = reduce(lcm, [a.den for a in coeffs(f)])
     p = convert(Poly{T}, l * f)
@@ -600,10 +600,10 @@ see `SymPy.jl` or `Nemo.jl`, for example.
 Gerhard. Cambridge University Press, 785 pages
 
 """
-factor{R<:Integer}(f::Poly{R}) = factor_btw(f) # factor_zassenhaus(f)
+factor(f::Poly{R}) where {R<:Integer} = factor_btw(f) # factor_zassenhaus(f)
 
 ## factor over Q[x], returns factors in Z[x].
-function factor{T<:Integer}(p::Poly{Rational{T}})
+function factor(p::Poly{Rational{T}}) where {T<:Integer}
     l, q = Qx_to_Zx(p)
     U = factor(q)
     V = Dict{Poly{Rational{T}}, Int}()
@@ -622,7 +622,7 @@ end
 """
 Return all rational roots of a polynomial f in Z[x].
 """
-function rational_roots{T<:Integer}(f::Poly{T})
+function rational_roots(f::Poly{T}) where {T<:Integer}
     
     fsq = square_free(convert(Poly{BigInt}, f))
     ps = factor_square_free_zassenhaus(fsq)
@@ -630,14 +630,14 @@ function rational_roots{T<:Integer}(f::Poly{T})
     sort(Rational{T}[-p[0] // p[1] for p in linear_facs])
 end
 
-rational_roots{T<:Integer}(f::Poly{Rational{T}}) = rational_roots(Qx_to_Zx(f)[2])
+rational_roots(f::Poly{Rational{T}}) where {T<:Integer} = rational_roots(Qx_to_Zx(f)[2])
 
 """
 Factor a polynomial `f` in Z[x] over Z/pZ[x], p a prime (not equal to 2).
 
     A dictionary is returned. The keys are the irreducible factors over Zp as polynomials over the integers. The coefficients are centered about 0.
 """
-function factormod{T<:Integer,S<:Integer}(f::Poly{T}, p::S)
+function factormod(f::Poly{T}, p::S) where {T<:Integer, S<:Integer}
     g = convert(Poly{BigInt}, f)
     U = poly_factor_over_Zp(g, p)
     V = Dict{Poly{T}, Int}()
