@@ -2,7 +2,6 @@
 
 A package for factoring polynomials with integer or rational coefficients over the integers.
 
-[![PolynomialFactors](http://pkg.julialang.org/badges/PolynomialFactors_0.4.svg)](http://pkg.julialang.org/?pkg=PolynomialFactors&ver=0.4)
 [![PolynomialFactors](http://pkg.julialang.org/badges/PolynomialFactors_0.5.svg)](http://pkg.julialang.org/?pkg=PolynomialFactors&ver=0.5)
 [![PolynomialFactors](http://pkg.julialang.org/badges/PolynomialFactors_0.6.svg)](http://pkg.julialang.org/?pkg=PolynomialFactors&ver=0.6)
 
