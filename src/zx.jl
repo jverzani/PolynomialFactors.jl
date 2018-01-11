@@ -62,8 +62,8 @@ end
 function poly_powermod_over_Zp(a::Poly{BigInt}, n::S, m::Poly{BigInt}, p::Integer) where {S<:Integer}
     ## basically powermod in intfuncs.jl with wider type signatures
     T = BigInt
-    const ONE = one(Poly{T})::Poly{T}
-    const ZERO = zero(Poly{T})::Poly{T}
+    ONE = one(Poly{T})::Poly{T}
+    ZERO = zero(Poly{T})::Poly{T}
     
     n < 0 && throw(DomainError())
     n == 0 && return ONE
@@ -129,7 +129,7 @@ end
 function poly_EEA_over_Zp(f::Poly{T}, g::Poly{T}, p::T) where {T}
 
 #    println("Poly EEA: f=$f; g=$g; p=$p")
-    const ZERO::Poly{T}, ONE::Poly{T} = zero(Poly{T}), one(Poly{T})
+    ZERO::Poly{T}, ONE::Poly{T} = zero(Poly{T}), one(Poly{T})
 
     f, g = Poly{T}[MOD(p)(u) for u in (f,g)]
     (g == ZERO || f == ZERO) && error("need f, g nonzero mod p")
@@ -159,7 +159,7 @@ end
 ## return, g, s,t: g gcd, p*s + q*t = g
 function poly_bezout_over_Zp(f::Poly{T}, g::Poly{T}, p::T) where {T}
     
-    const ZERO::Poly{T}, ONE::Poly{T} = zero(Poly{T}), one(Poly{T})
+    ZERO::Poly{T}, ONE::Poly{T} = zero(Poly{T}), one(Poly{T})
     f, g = Poly{T}[MOD(p)(u) for u in (f,g)]
 
     f == ZERO && return g, ONE, ZERO

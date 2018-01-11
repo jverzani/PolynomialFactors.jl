@@ -1,8 +1,13 @@
 using PolynomialFactors
 using Polynomials
-using Base.Test
+using Compat.Test
 
-println("Test factor over Poly{Int}")
+
+## Wilkinson (good out to 50 or so, then issues)
+
+
+@testset "Test factor over Poly{Int}" begin
+
 ## test of factoring over Z[x]
 x = variable(Int)
 f = (x-1)*(x-2)*(x-3)
@@ -31,11 +36,13 @@ U = factor(f)
 d = Dict(x-1 => 3, 2x-3=>4, x^2+x+1=>3)
 f = prod([k^v for (k,v) in  d])
 U = factor(f)
-for (k,v) in d
-    @test U[k] == v
+for (k,val) in d
+   @test U[k] == val
 end
 
-println("Test factor over Poly{BigInt}")
+end
+
+@testset "Test factor over Poly{BigInt}" begin
 ## BigInt
 ## issue #40 in Roots.jl
 x = variable(BigInt)
@@ -51,7 +58,6 @@ p = 1 + x^3 + x^6 + x^9 + x^12
 @test length(factor(p)) == 2 + 1
 @test p - prod([k^v for (k,v) in factor(p)]) == zero(p)
 
-## Wilkinson (good out to 50 or so, then issues)
 W(n) = prod([x-i for i in 1:20])
 U = factor(W(20))
 @test U[x-5] == 1
@@ -97,10 +103,12 @@ U = factor(f)
 @test U[-1 + 2x] == 3
 @test f - prod([k^v for (k,v) in factor(f)]) == zero(f)
 
-println("Test rational_roots")
+end
+
+@testset "Test rational_roots" begin
 ### Rational roots
-## Wilkinson
 x = variable(BigInt)
+W(n) = prod([x-i for i in 1:20])
 V = rational_roots(W(20))
 @test all(V .== 1:20)
 
@@ -109,7 +117,9 @@ V = rational_roots(f)
 @test 3//2 in V
 @test 6//5 in V
 
-println("Test factormod")
+end
+
+@testset "Test factormod" begin
 ## factormod
 x = variable(BigInt)
 
@@ -130,6 +140,8 @@ U = factormod(x^4 + 1, 2)
 
 p = 5x^5 - x^4 - 1
 U = factormod(p, 7)
-v =  prod([k^v for (k,v) in U]) - p
+V =  prod([k^v for (k,v) in U]) - p
 ## v is not zero, v mod p should be:
-@test Poly(BigInt[mod(l,7) for l in v.a]) == zero(Poly{BigInt})
+@test Poly(BigInt[mod(l,7) for l in V.a]) == zero(Poly{BigInt})
+
+end

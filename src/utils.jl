@@ -17,7 +17,7 @@ end
 ## http://stackoverflow.com/questions/37142821/prime-iterator-in-julia
 function nextprime(y::BigInt)
     x = BigInt()
-    ccall((:__gmpz_nextprime,:libgmp), Void, (Ptr{BigInt},Ptr{BigInt}), &x, &y)
+    ccall((:__gmpz_nextprime,:libgmp), Void, (Ptr{BigInt},Ptr{BigInt}), Ref(x), Ref(y))
     x
 end
 
@@ -77,7 +77,7 @@ cf: [wikipedia](https://en.wikipedia.org/wiki/Polynomial_greatest_common_divisor
 Note: we use `gcdx` for numbers
 """
 function bezout(a::T, b::T) where {T}
-    const ZERO, ONE = zero(T), one(T)
+    ZERO, ONE = zero(T), one(T)
     if a == ZERO
         return b, ZERO, ONE
     elseif b == ZERO

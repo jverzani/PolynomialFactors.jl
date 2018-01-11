@@ -33,7 +33,7 @@ function LLLBR!(B::Matrix{T}, c=2) where {T}
     m,n = size(B)
     m == n || throw(DomainError())
     
-    const ONE::Rational{T}, ZERO::Rational{T} = one(Rational{T}), zero(Rational{T})
+    ONE::Rational{T}, ZERO::Rational{T} = one(Rational{T}), zero(Rational{T})
 
     ## initialize
     U  = zeros(Rational{T}, m, m)

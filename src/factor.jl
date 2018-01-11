@@ -160,7 +160,7 @@ function hensel_step(f::Poly{T}, g::Poly, h::Poly, s::Poly, t::Poly, m) where {T
     degree(s) < degree(h) || error("need deg s < deg h")
     degree(t) < degree(g) || error("need deg t < deg g")
 
-    const ONE = one(Poly{T})
+    ONE = one(Poly{T})
     fbar, gbar, hbar, sbar, tbar =   [MOD(m^2)(u) for u in (f,g,h,s,t)]
 
     ebar = MOD(m^2)(fbar -gbar * hbar)

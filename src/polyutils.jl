@@ -113,7 +113,7 @@ function deflate(p::Poly{T}, fac::Poly{S}) where {T,S}
 end
 
 function deflate_over_Zp(f::Poly{T}, g::Poly{T}, p) where {T}
-    const ZERO = zero(f)
+    ZERO = zero(f)
     
     q,r = poly_divrem_over_Zp(f, g, p) # returns 0,0 if can't compute
     k = 0

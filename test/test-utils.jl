@@ -1,10 +1,10 @@
 using PolynomialFactors
 using Polynomials
-using Base.Test
+using Compat.Test
 
 
 ## utils
-println("Testing utils.jl")
+@testset "Testing utils.jl" begin
 
 ## nextprime
 @test PolynomialFactors.nextprime(4) == 5
@@ -40,3 +40,4 @@ vs = BigInt[mod(a, m) for m in ms]
 b = PolynomialFactors.chinese_remainder_theorem(ms, vs)
 @test a == b
 
+end
