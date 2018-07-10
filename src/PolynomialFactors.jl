@@ -4,33 +4,23 @@ module PolynomialFactors
 
 
 ## TODO
-## * performance is really poor for larger degrees.
+## * performance is still really poor for larger degrees.
 
 
-
-
-using Polynomials
+using AbstractAlgebra
 using Combinatorics
 using Primes
 import Primes: factor
+import LinearAlgebra: norm, vecdot, I
 
 
 include("utils.jl")
 include("polyutils.jl")
-include("zx.jl")
+include("factor_zp.jl")
 include("lll.jl")
-include("factor.jl")
+include("factor_zx.jl")
 
-export factor, rational_roots, factormod
-
-## Try to speed up the initial calls
-precompile(egcd, (Poly{BigInt},Poly{BigInt}))
-precompile(modular_gcd_small_prime,  (Poly{BigInt},Poly{BigInt}))
-precompile(factor_square_free_zassenhaus, (Poly{BigInt},))
-precompile(factor, (Poly{Int},))
-precompile(factor, (Poly{BigInt},))
-precompile(factor, (Poly{Rational{Int}},))
-precompile(factor, (Poly{Rational{BigInt}},))
+#export factor, rational_roots, factormod
 
 
 end # module
