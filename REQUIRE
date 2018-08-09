@@ -1,4 +1,4 @@
-julia 0.7-
+julia 0.7
 AbstractAlgebra 0.0.6
 Combinatorics 0.4.1
 Primes 0.1.1

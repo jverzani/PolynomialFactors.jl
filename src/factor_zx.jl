@@ -367,7 +367,14 @@ function poly_factor(f::AbstractAlgebra.Generic.Poly{Rational{T}}) where {T <: I
     end
     a = 1//common_denom * one(f)
     if !isone(a)
-        V[a] = 1
+        d = filter(kv -> degree(kv[1]) == 0, V)
+        if length(d) == 0
+            V[a] = 1
+        else
+            k,v = first(d)
+            V[k*a] = 1
+            delete!(V, k)
+        end
     end
     V
 end

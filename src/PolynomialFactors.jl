@@ -1,4 +1,3 @@
-__precompile__()
 
 module PolynomialFactors
 
@@ -20,6 +19,7 @@ include("factor_zp.jl")
 include("lll.jl")
 include("factor_zx.jl")
 
+export poly_factor, factormod
 #export factor, rational_roots, factormod
 
 
