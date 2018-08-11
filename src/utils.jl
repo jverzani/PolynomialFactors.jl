@@ -16,7 +16,7 @@ function _powermod(a, n::S, m) where {S<:Integer}
     _,b = divrem(a,m)
     iszero(b) && return b
     
-    t = prevpow2(n)::S
+    t = prevpow(2,n)::S
 
     local r = one(a)
     while true

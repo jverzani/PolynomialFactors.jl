@@ -1,5 +1,5 @@
 using PolynomialFactors
-using Compat.Test
+using Test
 
-#include("test-utils.jl")
+include("test-utils.jl")
 include("test-factor.jl")

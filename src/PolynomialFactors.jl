@@ -8,8 +8,7 @@ module PolynomialFactors
 
 using AbstractAlgebra
 using Combinatorics
-using Primes
-import Primes: factor
+import Primes
 import LinearAlgebra: norm, vecdot, I
 
 
@@ -18,6 +17,7 @@ include("polyutils.jl")
 include("factor_zp.jl")
 include("lll.jl")
 include("factor_zx.jl")
+
 
 export poly_factor, factormod
 #export factor, rational_roots, factormod
