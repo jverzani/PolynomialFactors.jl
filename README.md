@@ -67,8 +67,8 @@ first step is to find a common denominator for the coefficients. The
 constant polynomial term reflects this.
 
 ```
-julia> x = variable(Rational{Int})
-Poly(x)
+julia> R, x = QQ["x"]
+(Univariate Polynomial Ring in x over Rationals, x)
 
 julia> poly_factor( (1//2 - x)^2 * (1//3 - 1//4 * x)^5 )
 Dict{AbstractAlgebra.Generic.Poly{Rational{BigInt}},Int64} with 3 entries:

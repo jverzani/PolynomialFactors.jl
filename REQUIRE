@@ -1,5 +1,4 @@
 julia 0.7
-AbstractAlgebra 0.0.6
-Combinatorics 0.4.1
-Primes 0.1.1
-Compat 0.62.0
+AbstractAlgebra  0.1.1
+Combinatorics v0.7.0
+Primes 0.4.0

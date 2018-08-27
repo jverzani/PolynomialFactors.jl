@@ -2,7 +2,7 @@
 
 ### f = prod(fs) over Zp, find factors over Z
 function mu(i,j,B,Bs) 
-    LinearAlgebra.vecdot(B[i,:], Bs[j,:]) // LinearAlgebra.vecdot(Bs[j,:], Bs[j,:] )
+    LinearAlgebra.dot(B[i,:], Bs[j,:]) // LinearAlgebra.dot(Bs[j,:], Bs[j,:] )
 end
 function swaprows!(A, i, j, tmp)
     tmp[:] = A[i,:]
