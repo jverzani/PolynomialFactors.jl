@@ -6,7 +6,7 @@ A package for factoring polynomials with integer or rational coefficients over t
 
 Linux: [![Build Status](https://travis-ci.org/jverzani/PolynomialFactors.jl.svg?branch=master)](https://travis-ci.org/jverzani/PolynomialFactors.jl)
 &nbsp;
-Windows: [![Build Status](https://ci.appveyor.com/api/projects/status/github/jverzani/PolynomialFactors.jl?branch=master&svg=true)](https://ci.appveyor.com/project/jverzani/polynomialfactors-jl)
+Windows: [![Build St 0.1.1atus](https://ci.appveyor.com/api/projects/status/github/jverzani/PolynomialFactors.jl?branch=master&svg=true)](https://ci.appveyor.com/project/jverzani/polynomialfactors-jl)
 
 
 
