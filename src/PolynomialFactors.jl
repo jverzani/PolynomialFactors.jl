@@ -9,7 +9,7 @@ module PolynomialFactors
 using AbstractAlgebra
 using Combinatorics
 import Primes
-import LinearAlgebra: norm, vecdot, I
+import LinearAlgebra: norm, dot, I
 
 
 include("utils.jl")
