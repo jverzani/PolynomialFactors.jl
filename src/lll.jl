@@ -15,7 +15,7 @@ end
 function _reduce(i, T, B, U)
     j = i - 1
     while j > 0
-        rij = round(T, U[i,j])
+        rij = round(T, digits=U[i,j])
         B[i,:] -= rij * B[j, :]
         U[i,:] -= rij * U[j, :]
         j -= 1
@@ -163,7 +163,7 @@ function identify_factors_lll(f, facs, p, l, b, B)
 
 
     while length(Ts) > 0
-        u = shift!(Ts)
+        u = popfirst!(Ts)
         if length(Ts) == 0
             push!(Gs, fstar)
             break
