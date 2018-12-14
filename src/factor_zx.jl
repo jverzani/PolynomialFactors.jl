@@ -1,4 +1,4 @@
-    
+
 ## Factor over Z[x]
 ## big prime
 
@@ -20,7 +20,6 @@ function factor_Zx_big_prime_squarefree(f)
         p = big(0)
         B = floor(BigInt, sqrt(n+1)*big(2)^n*big(A)*b)
     end
-    
     while true
         p = Primes.nextprime(rand(2B:4B))
         g = gcd(as_poly_Zp(f, p, "x"), as_poly_Zp(derivative(f), p, "x"))
@@ -33,10 +32,10 @@ function factor_Zx_big_prime_squarefree(f)
 
     d = factor_Zp_squarefree(fZp, p, variable(fZp))
     gs = collect(keys(d))
-    
+
     R,x = ZZ["x"] # big?
     Gs = as_poly.(poly_coeffs.(gs), x)
-    
+
     _factor_combinations(f, Gs, p, 1, x, b, B)
 
 
@@ -49,14 +48,14 @@ end
 # lifts f,g,h,s,t over F_m to values in F_m^2
 function hensel_step(f, g, h, s, t, m)
     # f, g, h,s, t are in Z[x]
-    
+
     isone(lead(h)) || error("h must be monic")
     degree(f) == degree(g) + degree(h) || error("degree(f) != degree(g) + degree(h)")
     degree(s) < degree(h) && degree(t) < degree(g) || error("degree(s) !< degree(h) or degree(t) !< degree(g)")
 
 
     e = as_poly_modp(as_poly(f) - as_poly(g) * as_poly(h), m^2)
-    f, g, h, s, t = as_poly_modp.((f,g,h,s,t), m^2)    
+    f, g, h, s, t = as_poly_modp.((f,g,h,s,t), m^2)
     q, r = divrem(s*e, h)
 
     gstar = g + t * e + q * g
@@ -67,17 +66,17 @@ function hensel_step(f, g, h, s, t, m)
 
     sstar = s - d
     tstar = t - t*b - c*gstar
-    
+
 
     iszero(f - gstar * hstar) || error("f != g^* * h^* mod m^2")
 #    isone(sstar * tstar + tstar * hstar) || error("st + th != 1 mod m^2")
-    
-                                      
+
+
 
     as_poly.((gstar, hstar, sstar, tstar))
 end
 
- 
+
 # collect factors into a tree for apply HenselStep
 abstract type AbstractFactorTree end
 
@@ -109,22 +108,22 @@ function make_factor_tree_over_Zp(f, fs, p) # fs factors over Zp
     frs = fs[(k+1):end]
     fr = prod(as_poly.(frs))
 
-    
+
     l, r = tau.children = Any[make_factor_tree_over_Zp(fl, fls, p),
                               make_factor_tree_over_Zp(fr, frs, p)]
     g, s, t = gcdx(as_poly_Zp(l.fg,p), as_poly_Zp(r.fg,p))
-    
-    gi = invmod(value(coeff(g, 0)), p)  
+
+    gi = invmod(value(coeff(g, 0)), p)
     tau.s = as_poly(gi*s); tau.t = as_poly(gi*t)
     tau
 end
 
 
 function hensel_step_update_factor_tree!(tau, p)
-    !has_children(tau) && return 
+    !has_children(tau) && return
     l,r = tau.children
     f, g,h,s,t = tau.fg, l.fg, r.fg, tau.s, tau.t
-    
+
     g1,h1,s1,t1 = hensel_step(f, g, h, s, t, p)
 
     tau.s, tau.t = s1, t1
@@ -140,7 +139,7 @@ function all_children(tau::AbstractFactorTree)
    has_children(tau) ? vcat(all_children(tau.children[1]), all_children(tau.children[2])) : [tau.fg]
 end
 
-                                        
+
 """
 
 Algo 15.17 multifactor Hensel lifting
@@ -149,7 +148,7 @@ Algo 15.17 multifactor Hensel lifting
 function hensel_lift(f, facs, m::T, a0, l) where {T}
 
     tau = make_factor_tree_over_Zp(f, facs, m)
-    
+
     d = ceil(Int, log2(l))
     for j = 1:d
         a0 = mod(2*a0 - lead(f) * a0^2, m^2^j)
@@ -159,27 +158,27 @@ function hensel_lift(f, facs, m::T, a0, l) where {T}
 
     tau
 end
-   
+
 # factor square free poly in Z[x] using hensel lifting techique
 # can resolve factors of p^l using brute force or LLL algorith (which is
 # not as competitive here)
 # Could rewrite latter to use floating point numbers (http://perso.ens-lyon.fr/damien.stehle/downloads/LLL25.pdf)
 function factor_Zx_prime_power_squarefree(f,lll=false)
-    
+
     n = degree(f)
 
     n == 1 && return (f,)
 
     A = big(maxnorm(f))
     b = abs(value(lead(f)))
-    
+
     B = sqrt(n+1)*big(2)^n * A * b
     C = big(n+1)^(2n) * A^(2n-1)
 
     gamma = 2*log2(C) + 1
 
     # hack to try and factor_Zp over small prime if possible
-    # 
+    #
     gb = 2 * gamma*log(gamma)
     if gb < (typemax(Int))^(1/10)
         gamma_bound = floor(Int, gb)
@@ -187,27 +186,27 @@ function factor_Zx_prime_power_squarefree(f,lll=false)
         gamma_bound = floor(BigInt, gb)
     end
 
+    gamma_bound_lower = floor(BigInt, sqrt(gb))
 
 
 
     fs = poly_coeffs(f)
 
-    
+
     ## find p to factor over.
     ## for lower degree polynomials we choose more than 1 p, and select
     ## that with the fewest factors over Zp.
     ## This trades of more time factoring for less time resolving the factors
-    
+
     p, l = zero(gamma_bound), 0
     fbar = f # not type stable, but can't be, as cycle through GF(p)["x"]
     hs = nothing
 
     P, M = 0, Inf
-
     for k in 1:(max(0,3-div(n,15)) + 1)
 
         while true
-            P = Primes.prevprime(rand(20:gamma_bound))
+            P = Primes.prevprime(rand(gamma_bound_lower:gamma_bound))
             iszero(mod(b, P)) && continue
             fbar = as_poly_Zp(fs, P, "x")
             isone(gcd(fbar, derivative(fbar))) && break
@@ -215,7 +214,7 @@ function factor_Zx_prime_power_squarefree(f,lll=false)
 
         L = floor(Int, log(P, 2B+1))
         d = factor_Zp(fbar, P)
-        
+
         # modular factorization
         ds = collect(keys(d))
         nfacs = length(ds)
@@ -228,7 +227,6 @@ function factor_Zx_prime_power_squarefree(f,lll=false)
         end
 
     end
-
 
     # hensel lifting
     a = invmod(b, p)
@@ -268,7 +266,7 @@ returns q,r with
 If no such q and r can be found, then both `q` and `r` are 0.
 
 """
-function exact_divrem(a, b) 
+function exact_divrem(a, b)
     f,g = a, b
     x = variable(g)
     q, r = zero(f), f
@@ -299,12 +297,12 @@ end
 ## f in Z[x]
 ## find square free
 ## return fsq, g where fsq * g = f
-function square_free(f) 
+function square_free(f)
     degree(f) <= 1 && return f
-    
-    g = gcd(f, derivative(f))  
-    d = degree(g) 
-    
+
+    g = gcd(f, derivative(f))
+    d = degree(g)
+
     if  d > 0
         fsq = divexact(f, g) #faster than exact_divrem if r=0 is known
     else
@@ -347,7 +345,7 @@ function _factor_combinations(f, Gs, p, l, x, b, B)
 
     return (as_poly(as_poly_modp(b*prod(Gs),p)), )
 
-    
+
 end
 
 
@@ -387,7 +385,7 @@ function poly_factor(f::AbstractAlgebra.Generic.Poly{T}) where {T <: Integer}
     if sign(lead(f)) < 0
         c,f,pp = -c, -f, -pp
     end
-    
+
     if degree(f) == 1
         isone(c) && return Dict(f=>1)
         return Dict(c * one(f)=>1, pp=>1)
@@ -410,9 +408,9 @@ function poly_factor(f::AbstractAlgebra.Generic.Poly{T}) where {T <: Integer}
         end
         degree(g) <= 0 && break
     end
-    
+
     U
-    
+
 end
 
 # an iterable yielding a0,a1, ..., an
