@@ -1,8 +1,8 @@
 ### LLL method
 
 ### f = prod(fs) over Zp, find factors over Z
-function mu(i,j,B,Bs) 
-    LinearAlgebra.dot(B[i,:], Bs[j,:]) // LinearAlgebra.dot(Bs[j,:], Bs[j,:] )
+function mu(i,j,B,Bs)
+    dot(B[i,:], Bs[j,:]) // dot(Bs[j,:], Bs[j,:] )
 end
 function swaprows!(A, i, j, tmp)
     tmp[:] = A[i,:]
@@ -27,18 +27,18 @@ end
 # http://algo.epfl.ch/_media/en/projects/bachelor_semester/rapportetiennehelfer.pdf .
 # Algo 2
 function LLL_basis_reduction!(B::Matrix{T}, c=4//3) where {T <: Integer} # c > 4/3
-    
+
     m, n = size(B)
-    
+
     Bstar =  Matrix{Rational{T}}(I, m, m)
     U = Matrix{Rational{T}}(I, m, m)
 
     tmpZ = zeros(T, 1, m)
     tmpQ = zeros(Rational{T}, 1, m)
-                    
-    
+
+
     ONE, ZERO = one(Rational{T}), zero(Rational{T})
-    
+
     ## initialize Bstar, U
     Bstar[1,:] = B[1,:]  # b^*_1 = b_1
     for i in 2:n
@@ -58,7 +58,7 @@ function LLL_basis_reduction!(B::Matrix{T}, c=4//3) where {T <: Integer} # c > 4
         else
             # Modify Q and R in order to keep the relation B = QR after the swapping
             Bstar[i+1, :] += U[i+1,i] * Bstar[i, :]
-            
+
             U[i, i] = mu(i, i+1, B, Bstar)
             U[i, i+1] = U[i+1, i] = ONE
             U[i+1, i+1] = ZERO
@@ -81,8 +81,8 @@ function LLL_basis_reduction!(B::Matrix{T}, c=4//3) where {T <: Integer} # c > 4
         end
     end
 end
-                
-       
+
+
 
 
 ## For a polynomial p, create a lattice of p, xp, x^2p, ... then find a short vector.
@@ -122,7 +122,7 @@ function identify_factor(u::AbstractAlgebra.Generic.Poly, fstar::AbstractAlgebra
 
     while j <= nstar+1
         gstar = short_vector(u,m,j,d)
-        
+
         gstarp = as_poly_Zp(gstar, p)
         inds = Int[]
         for (i,t) in enumerate(Tsp)
@@ -137,7 +137,7 @@ function identify_factor(u::AbstractAlgebra.Generic.Poly, fstar::AbstractAlgebra
         hstar = as_poly(mod(b, m) * (isempty(Ssp) ? one(gstarp) : prod(Ssp)))
 
         pd = onenorm(primpart(gstar)) * onenorm(primpart(hstar))
-        
+
         if pd < B
             gstar, hstar = primpart(gstar), primpart(hstar)
             Ts = Ts[notinds] # modify Ts (Ts[:])or make a copy?

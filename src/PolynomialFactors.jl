@@ -9,6 +9,7 @@ module PolynomialFactors
 using AbstractAlgebra
 using Combinatorics
 import Primes
+import LinearAlgebra
 import LinearAlgebra: norm, dot, I
 
 
