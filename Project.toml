@@ -1,5 +1,6 @@
 name = "PolynomialFactors"
 uuid = "ec145902-31c2-532e-934a-7c64254c4b82"
+version = "0.3.0"
 
 [deps]
 AbstractAlgebra = "c3fe647b-3220-5bb0-a1ea-a7954cac585d"
