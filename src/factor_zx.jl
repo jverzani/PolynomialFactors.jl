@@ -53,7 +53,6 @@ function hensel_step(f, g, h, s, t, m)
     degree(f) == degree(g) + degree(h) || error("degree(f) != degree(g) + degree(h)")
     degree(s) < degree(h) && degree(t) < degree(g) || error("degree(s) !< degree(h) or degree(t) !< degree(g)")
 
-
     e = as_poly_modp(as_poly(f) - as_poly(g) * as_poly(h), m^2)
     f, g, h, s, t = as_poly_modp.((f,g,h,s,t), m^2)
     q, r = divrem(s*e, h)

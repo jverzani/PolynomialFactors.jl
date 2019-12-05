@@ -3,7 +3,7 @@
 
 ## conveniences for AbstractAlgebra.jl
 # get value of GF(p) in (-p/2, p/2)
-function value(x::AbstractAlgebra.gfelem)
+function value(x::AbstractAlgebra.GFElem)
     # reach in to get a, q
     q = parent(x).p
     a = x.d
@@ -73,7 +73,7 @@ end
 
 # make poly in GP from coefficiens of x
 function as_poly_modp(f, p, x0::String="x")
-    R, x = GF(p)[x0]
+    R, x = GF(p, check=false)[x0]  ## p is not always prime here. This is technically undefined behavior
     as = poly_coeffs(f)
     as_poly(_modp.(as, p), x)
 end
@@ -85,7 +85,7 @@ end
 function as_poly_Zp(f::AbstractAlgebra.Generic.Poly, p, x)
     as_poly_Zp(poly_coeffs(f), p, x)
 end
-    
+
 function as_poly_Zp(as, p::S, var="x") where {S}
     T = eltype(as)
     R = promote_type(T, S)
