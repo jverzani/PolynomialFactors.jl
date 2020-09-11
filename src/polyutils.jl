@@ -3,14 +3,19 @@
 
 ## conveniences for AbstractAlgebra.jl
 # get value of GF(p) in (-p/2, p/2)
-function value(x::AbstractAlgebra.gfelem)
+#function value(x::AbstractAlgebra.gfelem)
+function value(x)
     # reach in to get a, q
-    q = parent(x).p
-    a = x.d
-    a <= q ÷ 2 ? a : a - q
+    if hasfield(typeof(parent(x)), :p)
+        q = parent(x).p
+        a = x.d
+        a <= q ÷ 2 ? a : a - q
+    else
+        x
+    end
 end
 
-value(x) = x
+#value(x) = x
 
 function poly_coeffs(f::AbstractAlgebra.Generic.Poly)
 #    println("poly coef f=$f d=$(degree(f))")
@@ -72,8 +77,11 @@ function as_poly_modp(f, p, x::AbstractAlgebra.Generic.Poly)
 end
 
 # make poly in GP from coefficiens of x
+# !!! NOTE
+#     ?GF When check == false, no check is made, but the behaviour of the
+#     resulting object is undefined if p is composite. 
 function as_poly_modp(f, p, x0::String="x")
-    R, x = GF(p)[x0]
+    R, x = GF(p, check=false)[x0] 
     as = poly_coeffs(f)
     as_poly(_modp.(as, p), x)
 end

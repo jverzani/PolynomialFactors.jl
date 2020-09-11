@@ -23,7 +23,9 @@ function distinct_degree_factorization(f, q, x=gen(parent(f)))
 end
 
 
-function _equal_degree_splitting(f::AbstractAlgebra.Generic.Poly{AbstractAlgebra.gfelem{T}}, q, x, d) where {T}
+#function _equal_degree_splitting(f::AbstractAlgebra.Generic.Poly{AbstractAlgebra.gfelem{T}}, q, x, d) where {T}
+function _equal_degree_splitting(f, q, x, d) #where {T}
+    T = eltype(f)
     n = degree(f)
     n <= 1 && return (f, false)
 
