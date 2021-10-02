@@ -1,8 +1,8 @@
 # PolynomialFactors
 
-!!! note "needs updating"
-    This package needs updating. It currently only passes tests on `v0.10` of `AbstractAlgebra`
+**This package needs updating**. It currently only passes tests on `v0.10` of `AbstractAlgebra`.
 
+----
 
 A package for factoring polynomials with integer or rational coefficients over the integers.
 
