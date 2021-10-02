@@ -5,7 +5,7 @@
 ## return g1, g2, ..., gs: g) is product of all monic irreducible polys in Fq[x] of degree i that divide f
 function distinct_degree_factorization(f, q, x=gen(parent(f)))
     degree(f) > 0 || error("f is a constant poly")
-    
+
     h, f0, i = x, f, 0
     gs = eltype(f)[]
     while true
@@ -30,7 +30,8 @@ function _equal_degree_splitting(f, q, x, d) #where {T}
     n <= 1 && return (f, false)
 
     # random poly of degree < n
-    a = sum(convert(T, rand(0:(q-1))) * x^i for i in 0:(n-1))
+    q′ = Int(q)
+    a = sum(convert(T, rand(0:(q′-1))) * x^i for i in 0:(n-1))
     degree(a) <= 0 && return (f, false)
 
     g1 = gcd(a, f)
@@ -38,7 +39,7 @@ function _equal_degree_splitting(f, q, x, d) #where {T}
 
     b = _powermod(a, (q^d-1) ÷ 2, f)
     g2 = gcd(b-1, f)
-    
+
     !isone(g2) && g2 != f && return (g2, true)
 
     return (f, false)
@@ -59,7 +60,7 @@ function equal_degree_splitting(f, q, x, d)
     end
     return (f, false)
 end
-    
+
 
 
 # f square free in F_q[x]
@@ -160,4 +161,3 @@ function factormod(fs::Vector{T}, p::Integer) where {T <: Integer}
     f = as_poly_Zp(fs, p, "x")
     factor_Zp(fp, p)
 end
-
