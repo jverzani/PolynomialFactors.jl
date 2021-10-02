@@ -1,12 +1,10 @@
 # PolynomialFactors
 
+!!! note "needs updating"
+    This package needs updating. It currently only passes tests on `v0.10` of `AbstractAlgebra`
+
 A package for factoring polynomials with integer or rational coefficients over the integers.
 
-[![PolynomialFactors](http://pkg.julialang.org/badges/PolynomialFactors_0.6.svg)](http://pkg.julialang.org/?pkg=PolynomialFactors&ver=0.6)
-
-Linux: [![Build Status](https://travis-ci.org/jverzani/PolynomialFactors.jl.svg?branch=master)](https://travis-ci.org/jverzani/PolynomialFactors.jl)
-&nbsp;
-Windows: [![Build St 0.1.1atus](https://ci.appveyor.com/api/projects/status/github/jverzani/PolynomialFactors.jl?branch=master&svg=true)](https://ci.appveyor.com/project/jverzani/polynomialfactors-jl)
 
 
 
@@ -15,7 +13,7 @@ For polynomials over the integers or rational numbers, this package provides
 * a `factor` command to factor into irreducible factors over the integers;
 
 * a `rational_roots` function to return the rational roots;
- 
+
 * a `powermod` function to factor the polynomial over Z/pZ.
 
 The implementation is based on the Cantor-Zassenhaus approach, as
@@ -75,7 +73,7 @@ Dict{AbstractAlgebra.Generic.Poly{Rational{BigInt}},Int64} with 3 entries:
   2//1*x-1//1 => 2
   3//1*x-4//1 => 5
   -1//995328  => 1
-```  
+```
 
 For some problems big integers are necessary to express the problem:
 
@@ -112,7 +110,7 @@ julia> poly_factor(x^2 - big(2)^256)
 Dict{AbstractAlgebra.Generic.Poly{BigInt},Int64} with 2 entries:
   x+340282366920938463463374607431768211456 => 1
   x-340282366920938463463374607431768211456 => 1
-```  
+```
 
 
 Factoring polynomials over a finite field of coefficients, `Z_p[x]` with `p` a prime, is also provided by `factormod`:
