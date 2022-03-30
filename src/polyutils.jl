@@ -79,9 +79,9 @@ end
 # make poly in GP from coefficiens of x
 # !!! NOTE
 #     ?GF When check == false, no check is made, but the behaviour of the
-#     resulting object is undefined if p is composite. 
+#     resulting object is undefined if p is composite.
 function as_poly_modp(f, p, x0::String="x")
-    R, x = GF(p, check=false)[x0] 
+    R, x = GF(p, check=false)[x0]
     as = poly_coeffs(f)
     as_poly(_modp.(as, p), x)
 end
@@ -93,7 +93,7 @@ end
 function as_poly_Zp(f::AbstractAlgebra.Generic.Poly, p, x)
     as_poly_Zp(poly_coeffs(f), p, x)
 end
-    
+
 function as_poly_Zp(as, p::S, var="x") where {S}
     T = eltype(as)
     R = promote_type(T, S)

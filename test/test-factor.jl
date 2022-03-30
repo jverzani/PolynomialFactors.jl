@@ -64,7 +64,7 @@ U = P.poly_factor(W(20))
 
 ## Swinnerton-Dyer Polys are slow to resolve, as over `p` they factor into linears, but over Z are irreducible.
 ## so the "fish out" step exhausts all possibilities.
-S1 = x^2 - 2	
+S1 = x^2 - 2
 U = P.poly_factor(S1)
 @test U[S1] == 1
 
@@ -121,26 +121,26 @@ end
 @testset "Test factormod" begin
     ## factormod
     R,x = ZZ["x"]
-    
+
     # factormod has elements in GF(q)
     C10 = x^4 - x^3 + x^2 -x + 1
     U = P.factormod(C10, 5)
     # (1+x)^4
     @test length(U) == 1
-    
+
     C25 = x^20 + x^15 + x^10 + x^5 + 1
     U = P.factormod(C25, 5)
     # (x+4)^20
     @test length(U) == 1
-    
+
     U = P.factormod(x^4 + 1, 5)
     # (x^2+2)*(x^2+3)
     @test length(U) == 2
-    
+
     U = P.factormod(x^4 + 1, 2)
     # (x+1)^4
     @test length(U) == 1
-    
+
     p = 5x^5 - x^4 - 1
     U = P.factormod(p, 7)
     # 5 * (x^4+3*x^3+4*x^2+3*x+4) * (x + 1)

@@ -25,13 +25,13 @@ end
 
 #function _equal_degree_splitting(f::AbstractAlgebra.Generic.Poly{AbstractAlgebra.gfelem{T}}, q, x, d) where {T}
 function _equal_degree_splitting(f, q, x, d) #where {T}
-    T = eltype(f)
     n = degree(f)
     n <= 1 && return (f, false)
 
     # random poly of degree < n
     q′ = Int(q)
-    a = sum(convert(T, rand(0:(q′-1))) * x^i for i in 0:(n-1))
+    ground = base_ring(f)
+    a = sum(ground(rand(0:(q′-1))) * x^i for i in 0:(n-1))
     degree(a) <= 0 && return (f, false)
 
     g1 = gcd(a, f)
@@ -86,7 +86,7 @@ end
 function factor_Zp(f, q, x=variable(f))
 
     h = x
-    v = f * inv(lead(f)) # monic
+    v = f * inv(leading_coefficient(f)) # monic
     i = 0
     U = Dict{typeof(f), Int}()
 
@@ -121,7 +121,7 @@ end
 # this saves a `divrem` per factor
 function factor_Zp_squarefree(f, q, x=variable(f))
     h = x
-    v = f * inv(lead(f)) # monic
+    v = f * inv(leading_coefficient(f)) # monic
     i = 0
 
     facs = typeof(f)[]
@@ -148,7 +148,7 @@ end
 function factormod(f::AbstractAlgebra.Generic.Poly{T}, p::Integer) where {T <: Integer}
     x = string(var(parent(f)))
     fp = as_poly_Zp(f, p, x)
-    c = lead(fp)
+    c = leading_coefficient(fp)
     fp = fp * inv(c)
     us = factor_Zp(fp, p)
     if !isone(c)
