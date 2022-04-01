@@ -9,7 +9,7 @@ function factor_Zx_big_prime_squarefree(f)
     n == 1 && return f
 
     A = maxnorm(f)
-    b = value(lead(f))
+    b = value(leading_coefficient(f))
 
     # we use BigInt for p, B if we need to
     lambda = log(typemax(Int)/(4*A*b))/(1/2 + log(2))
@@ -27,7 +27,7 @@ function factor_Zx_big_prime_squarefree(f)
     end
 
     fZp = as_poly_Zp(f, p, "x")
-    fZp = fZp * inv(lead(fZp))
+    fZp = fZp * inv(leading_coefficient(fZp))
 
 
     d = factor_Zp_squarefree(fZp, p, variable(fZp))
@@ -49,7 +49,7 @@ end
 function hensel_step(f, g, h, s, t, m)
     # f, g, h,s, t are in Z[x]
 
-    isone(lead(h)) || error("h must be monic")
+    isone(leading_coefficient(h)) || error("h must be monic")
     degree(f) == degree(g) + degree(h) || error("degree(f) != degree(g) + degree(h)")
     degree(s) < degree(h) && degree(t) < degree(g) || error("degree(s) !< degree(h) or degree(t) !< degree(g)")
 
@@ -151,7 +151,7 @@ function hensel_lift(f, facs, m::T, a0, l) where {T}
 
     d = ceil(Int, log2(l))
     for j = 1:d
-        a0 = mod(2*a0 - lead(f) * a0^2, m^2^j)
+        a0 = mod(2*a0 - leading_coefficient(f) * a0^2, m^2^j)
         tau.fg = a0 * f
         hensel_step_update_factor_tree!(tau, m^2^(j-1))
     end
@@ -170,7 +170,7 @@ function factor_Zx_prime_power_squarefree(f,lll=false)
     n == 1 && return (f,)
 
     A = big(maxnorm(f))
-    b = abs(value(lead(f)))
+    b = abs(value(leading_coefficient(f)))
 
     B = sqrt(n+1)*big(2)^n * A * b
     C = big(n+1)^(2n) * A^(2n-1)
@@ -236,7 +236,7 @@ function factor_Zx_prime_power_squarefree(f,lll=false)
     # use 15.17 to lift f = b * g1 ... gr mod p^l, gi = hi mod p
     d = ceil(Int, log2(1+l))
     for j = 1:d
-        a = mod(2*a - lead(f) * a^2, p^2^j)
+        a = mod(2*a - leading_coefficient(f) * a^2, p^2^j)
         tau.fg = a * f
         hensel_step_update_factor_tree!(tau, p^2^(j-1))
     end
@@ -272,7 +272,7 @@ function exact_divrem(a, b)
     q, r = zero(f), f
 
     while degree(r) >= degree(g)
-        u, v = divrem(lead(r), lead(g))
+        u, v = divrem(leading_coefficient(r), leading_coefficient(g))
         v != 0 && return zero(a), zero(a)
         term = u * x^(degree(r) - degree(g))
         q = q + term
@@ -337,7 +337,7 @@ function _factor_combinations(f, Gs, p, l, x, b, B)
             if onenorm(gstar) * onenorm(hstar) <= B
                 Gs = Gs[_inds]
                 f = as_poly(primpart(hstar))
-                b = value(lead(f))
+                b = value(leading_coefficient(f))
                 return (primpart(gstar), _factor_combinations(f, Gs, p, l, x, b, B)...)
             end
         end
@@ -379,10 +379,10 @@ end
 
 function poly_factor(f::AbstractAlgebra.Generic.Poly{T}) where {T <: Integer}
 
-    # want content free poly with positive leading coefficient
+    # want content free poly with positive lead coefficient
     degree(f) < 0 && return Dict(f=>1)
     c, pp = content(f), primpart(f)
-    if sign(lead(f)) < 0
+    if sign(leading_coefficient(f)) < 0
         c,f,pp = -c, -f, -pp
     end
 
