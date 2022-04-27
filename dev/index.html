@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>PolynomialFactors · PolynomialFactors</title><script data-outdated-warner src="assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.044/juliamono.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.11/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="assets/documenter.js"></script><script src="siteinfo.js"></script><script src="../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href>PolynomialFactors</a></span></div><form class="docs-search" action="search/"><input class="docs-search-query" id="documenter-search-query" name="q" type="text" placeholder="Search docs"/></form><ul class="docs-menu"><li class="is-active"><a class="tocitem" href>PolynomialFactors</a><ul class="internal"><li><a class="tocitem" href="#Reference"><span>Reference</span></a></li></ul></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><nav class="breadcrumb"><ul class="is-hidden-mobile"><li class="is-active"><a href>PolynomialFactors</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>PolynomialFactors</a></li></ul></nav><div class="docs-right"><a class="docs-edit-link" href="https://github.com/jverzani/PolynomialFactors.jl/blob/master/docs/src/index.md" title="Edit on GitHub"><span class="docs-icon fab"></span><span class="docs-label is-hidden-touch">Edit on GitHub</span></a><a class="docs-settings-button fas fa-cog" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-sidebar-button fa fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a></div></header><article class="content" id="documenter-page"><h1 id="PolynomialFactors"><a class="docs-heading-anchor" href="#PolynomialFactors">PolynomialFactors</a><a id="PolynomialFactors-1"></a><a class="docs-heading-anchor-permalink" href="#PolynomialFactors" title="Permalink"></a></h1><p>A package for factoring polynomials with integer or rational coefficients over the integers.</p><p>For polynomials over the integers or rational numbers, this package provides</p><ul><li><p>a <code>factor</code> command to factor into irreducible factors over the integers;</p></li><li><p>a <code>rational_roots</code> function to return the rational roots;</p></li><li><p>a <code>powermod</code> function to factor the polynomial over Z/pZ.</p></li></ul><p>The implementation is based on the Cantor-Zassenhaus approach, as detailed in Chapters 14 and 15 of the excellent text <em>Modern Computer Algebra</em> by von zer Gathen and Gerhard and a paper by Beauzamy, Trevisan, and Wang.</p><p>The factoring solutions in <code>SymPy.jl</code> or <code>Nemo.jl</code> would be preferred, in general, especially for larger problems (degree <span>$30$</span> or more, say) where the performance here is not good. However, this package requires no additional external libraries. (PRs improving performance are most welcome.)</p><p>Examples:</p><pre><code class="nohighlight hljs">julia&gt; using AbstractAlgebra, PolynomialFactors;
+
+julia&gt; R, x = ZZ[&quot;x&quot;];
+
+julia&gt; p = prod(x .-[1,1,3,3,3,3,5,5,5,5,5,5])
+x^12-44*x^11+874*x^10-10348*x^9+81191*x^8-443800*x^7+1728556*x^6-4818680*x^5+9505375*x^4-12877500*x^3+11306250*x^2-5737500*x+1265625
+
+julia&gt; poly_factor(p)
+Dict{AbstractAlgebra.Generic.Poly{BigInt},Int64} with 3 entries:
+  x-5 =&gt; 6
+  x-1 =&gt; 2
+  x-3 =&gt; 4</code></pre><p>As can be seen <code>factor</code> returns a dictionary whose keys are irreducible factors of the polynomial <code>p</code> as <code>Polynomial</code> objects, the values being their multiplicity. If the polynomial is non-monic, a degree <span>$0$</span> polynomial is there so that the original polynomial can be recovered as the product  <code>prod(k^v for (k,v) in poly_factor(p))</code>.</p><p>Here we construct the polynomial in terms of a variable <code>x</code>:</p><pre><code class="nohighlight hljs">julia&gt; poly_factor((x-1)^2 * (x-3)^4 * (x-5)^6)
+Dict{AbstractAlgebra.Generic.Poly{BigInt},Int64} with 3 entries:
+  x-5 =&gt; 6
+  x-1 =&gt; 2
+  x-3 =&gt; 4</code></pre><p>Factoring over the rationals is really done over the integers, The first step is to find a common denominator for the coefficients. The constant polynomial term reflects this.</p><pre><code class="nohighlight hljs">julia&gt; R, x = QQ[&quot;x&quot;]
+(Univariate Polynomial Ring in x over Rationals, x)
+
+julia&gt; poly_factor( (1//2 - x)^2 * (1//3 - 1//4 * x)^5 )
+Dict{AbstractAlgebra.Generic.Poly{Rational{BigInt}},Int64} with 3 entries:
+  2//1*x-1//1 =&gt; 2
+  3//1*x-4//1 =&gt; 5
+  -1//995328  =&gt; 1</code></pre><p>For some problems big integers are necessary to express the problem:</p><pre><code class="nohighlight hljs">julia&gt; p = prod(x .- collect(1:20))
+x^20-210*x^19+20615*x^18-1256850*x^17+53327946*x^16-1672280820*x^15+40171771630*x^14-756111184500*x^13+11310276995381*x^12-135585182899530*x^11+1307535010540395*x^10-10142299865511450*x^9+63030812099294896*x^8-311333643161390640*x^7+1206647803780373360*x^6-3599979517947607200*x^5+8037811822645051776*x^4-12870931245150988800*x^3+13803759753640704000*x^2-8752948036761600000*x+2432902008176640000
+
+julia&gt; poly_factor(p)
+Dict{AbstractAlgebra.Generic.Poly{BigInt},Int64} with 20 entries:
+  x-15 =&gt; 1
+  x-18 =&gt; 1
+  x-17 =&gt; 1
+  x-9  =&gt; 1
+  x-5  =&gt; 1
+  x-14 =&gt; 1
+  x-7  =&gt; 1
+  x-13 =&gt; 1
+  x-11 =&gt; 1
+  x-2  =&gt; 1
+  x-12 =&gt; 1
+  x-1  =&gt; 1
+  x-3  =&gt; 1
+  x-8  =&gt; 1
+  x-10 =&gt; 1
+  x-4  =&gt; 1
+  x-19 =&gt; 1
+  x-16 =&gt; 1
+  x-6  =&gt; 1
+  x-20 =&gt; 1</code></pre><pre><code class="nohighlight hljs">julia&gt; poly_factor(x^2 - big(2)^256)
+Dict{AbstractAlgebra.Generic.Poly{BigInt},Int64} with 2 entries:
+  x+340282366920938463463374607431768211456 =&gt; 1
+  x-340282366920938463463374607431768211456 =&gt; 1</code></pre><p>Factoring polynomials over a finite field of coefficients, <code>Z_p[x]</code> with <code>p</code> a prime, is also provided by <code>factormod</code>:</p><pre><code class="nohighlight hljs">julia&gt; factormod(x^4 + 1, 2)
+Dict{AbstractAlgebra.Generic.Poly{AbstractAlgebra.gfelem{BigInt}},Int64} with 1 entry:
+  x+1 =&gt; 4
+
+julia&gt; factormod(x^4 + 1, 5)
+Dict{AbstractAlgebra.Generic.Poly{AbstractAlgebra.gfelem{BigInt}},Int64} with 2 entries:
+  x^2+3 =&gt; 1
+  x^2+2 =&gt; 1
+
+julia&gt; factormod(x^4 + 1, 3)
+Dict{AbstractAlgebra.Generic.Poly{AbstractAlgebra.gfelem{BigInt}},Int64} with 2 entries:
+  x^2+x+2   =&gt; 1
+  x^2+2*x+2 =&gt; 1
+
+julia&gt; factormod(x^4 + 1, 7)
+Dict{AbstractAlgebra.Generic.Poly{AbstractAlgebra.gfelem{BigInt}},Int64} with 2 entries:
+  x^2+3*x+1 =&gt; 1
+  x^2+4*x+1 =&gt; 1</code></pre><p>The keys are polynomials a finite group, not over the integers.</p><h2 id="Reference"><a class="docs-heading-anchor" href="#Reference">Reference</a><a id="Reference-1"></a><a class="docs-heading-anchor-permalink" href="#Reference" title="Permalink"></a></h2><article class="docstring"><header><a class="docstring-binding" id="PolynomialFactors.exact_divrem-Tuple{Any, Any}" href="#PolynomialFactors.exact_divrem-Tuple{Any, Any}"><code>PolynomialFactors.exact_divrem</code></a> — <span class="docstring-category">Method</span></header><section><div><p>Division algorithm for Z[x]</p><p>returns q,r with</p><ul><li><code>a = q*b + r</code></li><li><code>degree(r) &lt; degree(b)</code></li></ul><p>If no such q and r can be found, then both <code>q</code> and <code>r</code> are 0.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/jverzani/PolynomialFactors.jl/blob/b9a2989dc11690f64e61db342d8abe77f0e0b882/src/factor_zx.jl#L258-L268">source</a></section></article><article class="docstring"><header><a class="docstring-binding" id="PolynomialFactors.factormod-Union{Tuple{T}, Tuple{AbstractAlgebra.Generic.Poly{T}, Integer}} where T&lt;:Integer" href="#PolynomialFactors.factormod-Union{Tuple{T}, Tuple{AbstractAlgebra.Generic.Poly{T}, Integer}} where T&lt;:Integer"><code>PolynomialFactors.factormod</code></a> — <span class="docstring-category">Method</span></header><section><div><pre><code class="language-julia hljs">factormod(q::AbstractAlgebra.Generic.Poly{T}, p)</code></pre><p>Factor polynomial <span>$q$</span> over <span>$Z_p$</span> with <span>$p$</span> prime.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/jverzani/PolynomialFactors.jl/blob/b9a2989dc11690f64e61db342d8abe77f0e0b882/src/factor_zp.jl#L148-L152">source</a></section></article><article class="docstring"><header><a class="docstring-binding" id="PolynomialFactors.hensel_lift-Union{Tuple{T}, Tuple{Any, Any, T, Any, Any}} where T" href="#PolynomialFactors.hensel_lift-Union{Tuple{T}, Tuple{Any, Any, T, Any, Any}} where T"><code>PolynomialFactors.hensel_lift</code></a> — <span class="docstring-category">Method</span></header><section><div><p>Algo 15.17 multifactor Hensel lifting</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/jverzani/PolynomialFactors.jl/blob/b9a2989dc11690f64e61db342d8abe77f0e0b882/src/factor_zx.jl#L143-L147">source</a></section></article><article class="docstring"><header><a class="docstring-binding" id="PolynomialFactors.identify_factors_lll-NTuple{6, Any}" href="#PolynomialFactors.identify_factors_lll-NTuple{6, Any}"><code>PolynomialFactors.identify_factors_lll</code></a> — <span class="docstring-category">Method</span></header><section><div><p>Use LLL basis reduction to identify factors of square free f from its factors over Zp</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/jverzani/PolynomialFactors.jl/blob/b9a2989dc11690f64e61db342d8abe77f0e0b882/src/lll.jl#L153-L155">source</a></section></article><article class="docstring"><header><a class="docstring-binding" id="PolynomialFactors.poly_factor-Union{Tuple{AbstractAlgebra.Generic.Poly{T}}, Tuple{T}} where T&lt;:Integer" href="#PolynomialFactors.poly_factor-Union{Tuple{AbstractAlgebra.Generic.Poly{T}}, Tuple{T}} where T&lt;:Integer"><code>PolynomialFactors.poly_factor</code></a> — <span class="docstring-category">Method</span></header><section><div><pre><code class="language-julia hljs">poly_factor(p::AbstractAlgebra.Generic.Poly{T})</code></pre><p>Factor a polynomial over the integers or rationals returning a dictionary of factors and their multiplicities.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/jverzani/PolynomialFactors.jl/blob/b9a2989dc11690f64e61db342d8abe77f0e0b882/src/factor_zx.jl#L380-L385">source</a></section></article></article><nav class="docs-footer"><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.16 on <span class="colophon-date" title="Wednesday 27 April 2022 01:54">Wednesday 27 April 2022</span>. Using Julia version 1.7.2.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
