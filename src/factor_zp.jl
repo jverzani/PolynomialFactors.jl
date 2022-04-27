@@ -145,6 +145,11 @@ function factor_Zp_squarefree(f, q, x=variable(f))
     facs
 end
 
+"""
+    factormod(q::AbstractAlgebra.Generic.Poly{T}, p)
+
+Factor polynomial ``q`` over ``Z_p`` with ``p`` prime.
+"""
 function factormod(f::AbstractAlgebra.Generic.Poly{T}, p::Integer) where {T <: Integer}
     x = string(var(parent(f)))
     fp = as_poly_Zp(f, p, x)

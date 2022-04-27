@@ -377,6 +377,12 @@ function poly_factor(f::AbstractAlgebra.Generic.Poly{Rational{T}}) where {T <: I
     V
 end
 
+"""
+    poly_factor(p::AbstractAlgebra.Generic.Poly{T})
+
+Factor a polynomial over the integers or rationals returning a dictionary of factors and their multiplicities.
+
+"""
 function poly_factor(f::AbstractAlgebra.Generic.Poly{T}) where {T <: Integer}
 
     # want content free poly with positive lead coefficient

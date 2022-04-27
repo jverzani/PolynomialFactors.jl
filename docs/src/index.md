@@ -1,16 +1,6 @@
 # PolynomialFactors
 
-
-[![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://jverzani.github.io/PolynomialFactors.jl/stable)
-[![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://jverzani.github.io/PolynomialFactors.jl/dev)
-[![Build Status](https://github.com/jverzani/PolynomialFactors.jl/workflows/CI/badge.svg)](https://github.com/jverzani/PolynomialFactors.jl/actions)
-[![codecov](https://codecov.io/gh/jverzani/PolynomialFactors.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/jverzani/PolynomialFactors.jl)
-
-
-
 A package for factoring polynomials with integer or rational coefficients over the integers.
-
-
 
 
 For polynomials over the integers or rational numbers, this package provides
@@ -22,13 +12,16 @@ For polynomials over the integers or rational numbers, this package provides
 * a `powermod` function to factor the polynomial over Z/pZ.
 
 The implementation is based on the Cantor-Zassenhaus approach, as
-detailed in Chapters 14 and 15 of the excellent text *Modern Computer Algebra* by von zer
-Gathen and Gerhard and a paper by Beauzamy, Trevisan, and Wang.
+detailed in Chapters 14 and 15 of the excellent text *Modern Computer
+Algebra* by von zer Gathen and Gerhard and a paper by Beauzamy,
+Trevisan, and Wang.
 
 
 The factoring solutions in `SymPy.jl` or `Nemo.jl` would be preferred,
-in general, especially for larger problems (degree 30 or more, say) where the performance here is not good. However, this package
-requires no additional external libraries. (PRs improving performance are most welcome.)
+in general, especially for larger problems (degree ``30`` or more,
+say) where the performance here is not good. However, this package
+requires no additional external libraries. (PRs improving performance
+are most welcome.)
 
 
 Examples:
@@ -142,3 +135,11 @@ Dict{AbstractAlgebra.Generic.Poly{AbstractAlgebra.gfelem{BigInt}},Int64} with 2 
 ```
 
 The keys are polynomials a finite group, not over the integers.
+
+
+## Reference
+
+
+```@autodocs
+Modules = [PolynomialFactors]
+```
