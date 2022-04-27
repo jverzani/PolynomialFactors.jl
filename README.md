@@ -1,8 +1,12 @@
 # PolynomialFactors
 
-**This package needs updating**. It currently only passes tests on `v0.10` of `AbstractAlgebra`.
 
-----
+[![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://jverzani.github.io/PolynomialFactors.jl/stable)
+[![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://jverzani.github.io/PolynomialFactors.jl/dev)
+[![Build Status](https://github.com/jverzani/PolynomialFactors.jl/workflows/CI/badge.svg)](https://github.com/jverzani/PolynomialFactors.jl/actions)
+[![codecov](https://codecov.io/gh/jverzani/PolynomialFactors.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/jverzani/PolynomialFactors.jl)
+
+
 
 A package for factoring polynomials with integer or rational coefficients over the integers.
 
